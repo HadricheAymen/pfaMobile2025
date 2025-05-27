@@ -8,7 +8,7 @@ class UserToggleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return SizedBox.shrink();
+    if (user == null) return const SizedBox.shrink();
     return PopupMenuButton<int>(
       icon: CircleAvatar(
         backgroundColor: Colors.blue.shade100,

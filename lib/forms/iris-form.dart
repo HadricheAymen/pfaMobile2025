@@ -76,6 +76,7 @@ class _IrisFormState extends State<IrisForm> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 600;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -94,16 +95,16 @@ class _IrisFormState extends State<IrisForm> {
             padding: EdgeInsets.all(size.width * 0.05),
             child: Column(
               children: [
-                _buildHeader(),
+                _buildHeader(size, isSmallScreen),
                 SizedBox(height: size.height * 0.03),
                 _buildImageUploadSection(size),
                 SizedBox(height: size.height * 0.03),
-                _buildForm(size),
+                _buildForm(size, isSmallScreen),
                 SizedBox(height: size.height * 0.03),
-                _buildAnalyzeButton(),
+                _buildAnalyzeButton(size, isSmallScreen),
                 if (_analysisResult != null) ...[
                   SizedBox(height: size.height * 0.03),
-                  _buildResults(size),
+                  _buildResults(size, isSmallScreen),
                 ],
               ],
             ),
@@ -113,28 +114,28 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Size size, bool isSmallScreen) {
     return Column(
       children: [
-        const Text(
+        Text(
           'Analysez votre iris',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: size.width * (isSmallScreen ? 0.07 : 0.045),
             fontWeight: FontWeight.bold,
             fontFamily: 'Playfair Display',
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: size.height * 0.01),
         Text(
           'Découvrez votre type d\'iris grâce à notre IA',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: size.width * (isSmallScreen ? 0.045 : 0.03),
             color: Colors.grey[600],
           ),
         ),
         Container(
-          margin: const EdgeInsets.symmetric(vertical: 16),
-          width: 80,
+          margin: EdgeInsets.symmetric(vertical: size.height * 0.02),
+          width: size.width * (isSmallScreen ? 0.18 : 0.12),
           height: 3,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -187,46 +188,71 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildForm(Size size) {
+  Widget _buildForm(Size size, bool isSmallScreen) {
     return Form(
       key: _formKey,
       child: Column(
         children: [
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Nom',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: size.height * 0.018,
+                horizontal: size.width * 0.04,
+              ),
             ),
+            style: TextStyle(
+                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: size.height * 0.018),
           TextFormField(
             controller: _emailController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Email',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: size.height * 0.018,
+                horizontal: size.width * 0.04,
+              ),
             ),
+            style: TextStyle(
+                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: size.height * 0.018),
           TextFormField(
             controller: _ageController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Âge',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: size.height * 0.018,
+                horizontal: size.width * 0.04,
+              ),
             ),
             keyboardType: TextInputType.number,
+            style: TextStyle(
+                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: size.height * 0.018),
           DropdownButtonFormField<String>(
             value: _selectedGender.isEmpty ? null : _selectedGender,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Genre',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: size.height * 0.018,
+                horizontal: size.width * 0.04,
+              ),
             ),
             items: ['Homme', 'Femme', 'Autre']
                 .map((gender) => DropdownMenuItem(
                       value: gender,
-                      child: Text(gender),
+                      child: Text(gender,
+                          style: TextStyle(
+                              fontSize:
+                                  size.width * (isSmallScreen ? 0.045 : 0.03))),
                     ))
                 .toList(),
             onChanged: (value) {
@@ -235,52 +261,69 @@ class _IrisFormState extends State<IrisForm> {
               });
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: size.height * 0.018),
           TextFormField(
             controller: _commentsController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Commentaires',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: size.height * 0.018,
+                horizontal: size.width * 0.04,
+              ),
             ),
             maxLines: 3,
+            style: TextStyle(
+                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAnalyzeButton() {
-    return ElevatedButton(
-      onPressed: _image == null || _isAnalyzing ? null : _analyzeIris,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
+  Widget _buildAnalyzeButton(Size size, bool isSmallScreen) {
+    return SizedBox(
+      width: size.width * (isSmallScreen ? 0.8 : 0.4),
+      child: ElevatedButton(
+        onPressed: _image == null || _isAnalyzing ? null : _analyzeIris,
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.08,
+            vertical: size.height * 0.02,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
         ),
-      ),
-      child: _isAnalyzing
-          ? const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        child: _isAnalyzing
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: size.width * 0.05,
+                    height: size.width * 0.05,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   ),
-                ),
-                SizedBox(width: 8),
-                Text('Analyse en cours...'),
-              ],
-            )
-          : const Text('Analyser mon iris'),
+                  SizedBox(width: size.width * 0.02),
+                  Text('Analyse en cours...',
+                      style: TextStyle(
+                          fontSize:
+                              size.width * (isSmallScreen ? 0.045 : 0.03))),
+                ],
+              )
+            : Text('Analyser mon iris',
+                style: TextStyle(
+                    fontSize: size.width * (isSmallScreen ? 0.05 : 0.035))),
+      ),
     );
   }
 
-  Widget _buildResults(Size size) {
+  Widget _buildResults(Size size, bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(size.width * 0.04),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -295,50 +338,59 @@ class _IrisFormState extends State<IrisForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Résultat de l\'analyse',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: size.width * (isSmallScreen ? 0.06 : 0.04),
               fontWeight: FontWeight.bold,
             ),
           ),
           const Divider(),
-          const Text(
+          Text(
             'Votre type d\'iris principal :',
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(
+                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
           ),
           Text(
             _analysisResult!['primaryType'],
             style: TextStyle(
-              fontSize: 24,
+              fontSize: size.width * (isSmallScreen ? 0.08 : 0.055),
               fontWeight: FontWeight.bold,
               color: Theme.of(context).primaryColor,
             ),
           ),
-          const SizedBox(height: 16),
-          _buildPercentageBar('Fleur', _analysisResult!['fleurPercentage']),
-          _buildPercentageBar('Bijou', _analysisResult!['bijouPercentage']),
-          _buildPercentageBar('Flux', _analysisResult!['fluxPercentage']),
-          _buildPercentageBar('Shaker', _analysisResult!['shakerPercentage']),
+          SizedBox(height: size.height * 0.02),
+          _buildPercentageBar('Fleur', _analysisResult!['fleurPercentage'],
+              size, isSmallScreen),
+          _buildPercentageBar('Bijou', _analysisResult!['bijouPercentage'],
+              size, isSmallScreen),
+          _buildPercentageBar(
+              'Flux', _analysisResult!['fluxPercentage'], size, isSmallScreen),
+          _buildPercentageBar('Shaker', _analysisResult!['shakerPercentage'],
+              size, isSmallScreen),
         ],
       ),
     );
   }
 
-  Widget _buildPercentageBar(String label, int percentage) {
+  Widget _buildPercentageBar(
+      String label, int percentage, Size size, bool isSmallScreen) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$label: $percentage%'),
-          const SizedBox(height: 4),
+          Text('$label: $percentage%',
+              style: TextStyle(
+                  fontSize: size.width * (isSmallScreen ? 0.045 : 0.03))),
+          SizedBox(height: size.height * 0.004),
           LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey[200],
             valueColor: AlwaysStoppedAnimation<Color>(
               _getColorForType(label),
             ),
+            minHeight: size.height * 0.012,
           ),
         ],
       ),

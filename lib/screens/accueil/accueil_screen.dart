@@ -37,44 +37,96 @@ class AccueilScreen extends StatelessWidget {
                     SizedBox(height: size.height * 0.04),
                     _buildFeatures(context, size, isSmallScreen),
                     SizedBox(height: size.height * 0.02),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const IrisForm()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8A4FFF),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.06,
-                          vertical: size.height * 0.02,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: size.width * (isSmallScreen ? 0.05 : 0.04),
-                          ),
-                          SizedBox(width: size.width * 0.02),
-                          Text(
-                            'Analyser mon iris',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize:
-                                  size.width * (isSmallScreen ? 0.04 : 0.03),
-                              fontWeight: FontWeight.w600,
+                    // Action buttons row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const IrisForm()),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8A4FFF),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: size.width * 0.04,
+                                vertical: size.height * 0.02,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: size.width *
+                                      (isSmallScreen ? 0.05 : 0.04),
+                                ),
+                                SizedBox(width: size.width * 0.02),
+                                Flexible(
+                                  child: Text(
+                                    'Analyser mon iris',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: size.width *
+                                          (isSmallScreen ? 0.035 : 0.025),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(width: size.width * 0.03),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/personality-test');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: size.width * 0.04,
+                                vertical: size.height * 0.02,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.psychology,
+                                  color: Colors.white,
+                                  size: size.width *
+                                      (isSmallScreen ? 0.05 : 0.04),
+                                ),
+                                SizedBox(width: size.width * 0.02),
+                                Flexible(
+                                  child: Text(
+                                    'Test de Personnalité',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: size.width *
+                                          (isSmallScreen ? 0.035 : 0.025),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

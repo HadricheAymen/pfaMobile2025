@@ -10,6 +10,7 @@ import 'package:pfa_mobile/screens/iris_types/fleur_screen.dart';
 import 'package:pfa_mobile/screens/iris_types/flux_screen.dart';
 import 'package:pfa_mobile/screens/iris_types/iris_diversity_screen.dart';
 import 'package:pfa_mobile/screens/iris_types/shaker_screen.dart';
+import 'package:pfa_mobile/screens/personality_test/personality_test_screen.dart';
 
 class AppRoutes {
   static final navigatorKey = GlobalKey<NavigatorState>();
@@ -27,6 +28,7 @@ class AppRoutes {
   static const String bijou = '/bijou';
   static const String flux = '/flux';
   static const String shaker = '/shaker';
+  static const String personalityTest = '/personality-test';
   static const String dashboard = '/dashboard';
 
   // Define all routes
@@ -42,6 +44,7 @@ class AppRoutes {
         bijou: (context) => const BijouScreen(),
         flux: (context) => const FluxScreen(),
         shaker: (context) => const ShakerScreen(),
+        personalityTest: (context) => const PersonalityTestScreen(),
         // dashboard: (context) => const DashboardScreen(),
       };
 
