@@ -50,7 +50,7 @@ class SuivantaccScreen extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () =>
-                            Navigator.pushNamed(context, '/accueil'),
+                            Navigator.pushNamedAndRemoveUntil(context, '/accueil', (route) => false),
                         child: Text(
                           'Accueil',
                           style: TextStyle(

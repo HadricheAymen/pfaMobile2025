@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignInPage extends StatelessWidget {
   const SignInPage({super.key});
@@ -7,6 +8,8 @@ class SignInPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
+    TextEditingController email = TextEditingController();
+    TextEditingController password = TextEditingController();
 
     return Scaffold(
       body: Container(
@@ -110,6 +113,7 @@ class SignInPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
+                                    controller: email,
                                     decoration: InputDecoration(
                                       hintText: 'Votre adresse email',
                                       border: OutlineInputBorder(
@@ -140,6 +144,7 @@ class SignInPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
+                                    controller: password,
                                     obscureText: true,
                                     decoration: InputDecoration(
                                       hintText: 'Votre mot de passe',
@@ -180,15 +185,16 @@ class SignInPage extends StatelessWidget {
                                       );
                                     } else {
                                       // For narrow screens - vertical layout
-                                      return Column(
+                                      return const Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          _buildRememberMeSection(
-                                              size, isSmallScreen),
-                                          SizedBox(height: size.height * 0.01),
-                                          _buildForgotPasswordButton(
-                                              size, isSmallScreen),
+                                          //   _buildRememberMeSection(
+                                          //       size, isSmallScreen),
+                                          //   SizedBox(height: size.height * 0.01),
+                                          //   _buildForgotPasswordButton(
+                                          //       size, isSmallScreen),
+                                          //
                                         ],
                                       );
                                     }
@@ -208,7 +214,10 @@ class SignInPage extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    signInWithEmailAndPassword(
+                                        context, email, password);
+                                  },
                                   child: Text(
                                     'Se connecter',
                                     style: TextStyle(
@@ -218,57 +227,6 @@ class SignInPage extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              ),
-                              SizedBox(height: size.height * 0.03),
-
-                              // Social Login
-                              Text(
-                                'Ou connectez-vous avec',
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: size.width *
-                                      (isSmallScreen ? 0.035 : 0.025),
-                                ),
-                              ),
-                              SizedBox(height: size.height * 0.02),
-
-                              // Social Buttons
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {},
-                                      icon: Image.asset(
-                                        'assets/google-icon.png',
-                                        height: 24,
-                                      ),
-                                      label: const Text('Google'),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12),
-                                        side: BorderSide(
-                                            color: Colors.grey.shade300),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {},
-                                      icon: const Icon(Icons.facebook,
-                                          color: Color(0xFF1877F2)),
-                                      label: const Text('Facebook'),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12),
-                                        side: BorderSide(
-                                            color: Colors.grey.shade300),
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ),
                               SizedBox(height: size.height * 0.03),
 
@@ -359,5 +317,37 @@ class SignInPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> signInWithEmailAndPassword(BuildContext context,
+      TextEditingController email, TextEditingController password) async {
+    try {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.text.trim(),
+        password: password.text.trim(),
+      );
+      // On success, show a message or navigate
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Connexion réussie!')),
+      );
+      // Optionally navigate to another screen
+      Navigator.pushReplacementNamed(context, '/accueil');
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'user-not-found') {
+        message = 'Aucun utilisateur trouvé pour cet email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Mot de passe incorrect.';
+      } else {
+        message = 'Erreur de connexion.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
   }
 }

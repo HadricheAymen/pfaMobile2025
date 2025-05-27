@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 // Update the color constants
-const fluxPrimaryColor = Color(0xFF4FFF8A);
-const fluxSecondaryColor = Color(0xFF92FFB8);
-const fluxGradientStart = Color(0xFFE6FFF0);
-const fluxGradientEnd = Color(0xFFE0FFE6);
+const fluxPrimaryColor = Color(0xFF4F8AFF);
+const fluxSecondaryColor = Color(0xFF92B8FF);
+const fluxGradientStart = Color(0xFFE6F0FF);
+const fluxGradientEnd = Color(0xFFE0E6FF);
 
 class FluxScreen extends StatelessWidget {
   const FluxScreen({Key? key}) : super(key: key);

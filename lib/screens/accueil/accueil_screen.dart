@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pfa_mobile/forms/iris-form.dart';
+import 'package:pfa_mobile/Auth/user_toggle_icon.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AccueilScreen extends StatelessWidget {
   const AccueilScreen({super.key});
@@ -9,70 +11,73 @@ class AccueilScreen extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF5F7FA), Color(0xFFE4E8F0)],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: size.width * 0.06,
-                vertical: size.height * 0.02,
+    return WillPopScope(
+      onWillPop: () async => false, // Prevent back navigation
+      child: Scaffold(
+        body: SingleChildScrollView(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF5F7FA), Color(0xFFE4E8F0)],
               ),
-              child: Column(
-                children: [
-                  _buildNavBar(context, size, isSmallScreen),
-                  SizedBox(height: size.height * 0.03),
-                  _buildMainContent(context, size, isSmallScreen),
-                  SizedBox(height: size.height * 0.04),
-                  _buildFeatures(context, size, isSmallScreen),
-                  SizedBox(height: size.height * 0.02),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const IrisForm()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8A4FFF),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.06,
-                        vertical: size.height * 0.02,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: size.width * (isSmallScreen ? 0.05 : 0.04),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: size.width * 0.06,
+                  vertical: size.height * 0.02,
+                ),
+                child: Column(
+                  children: [
+                    _buildNavBar(context, size, isSmallScreen),
+                    SizedBox(height: size.height * 0.03),
+                    _buildMainContent(context, size, isSmallScreen),
+                    SizedBox(height: size.height * 0.04),
+                    _buildFeatures(context, size, isSmallScreen),
+                    SizedBox(height: size.height * 0.02),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const IrisForm()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8A4FFF),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: size.width * 0.06,
+                          vertical: size.height * 0.02,
                         ),
-                        SizedBox(width: size.width * 0.02),
-                        Text(
-                          'Analyser mon iris',
-                          style: TextStyle(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.camera_alt,
                             color: Colors.white,
-                            fontSize:
-                                size.width * (isSmallScreen ? 0.04 : 0.03),
-                            fontWeight: FontWeight.w600,
+                            size: size.width * (isSmallScreen ? 0.05 : 0.04),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: size.width * 0.02),
+                          Text(
+                            'Analyser mon iris',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize:
+                                  size.width * (isSmallScreen ? 0.04 : 0.03),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -94,42 +99,49 @@ class AccueilScreen extends StatelessWidget {
             color: Colors.grey[800],
           ),
         ),
-        Row(
-          children: [
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/login'),
-              child: Text(
-                'Connexion',
-                style: TextStyle(
-                  color: const Color(0xFF8A4FFF),
-                  fontWeight: FontWeight.w600,
-                  fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
-                ),
+        FirebaseAuth.instance.currentUser == null
+            ? Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    child: Text(
+                      'Connexion',
+                      style: TextStyle(
+                        color: const Color(0xFF8A4FFF),
+                        fontWeight: FontWeight.w600,
+                        fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: size.width * 0.02),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/signup'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8A4FFF),
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.04,
+                        vertical: size.height * 0.015,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: Text(
+                      'Inscription',
+                      style: TextStyle(
+                        fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : UserToggleIcon(
+                onSignOut: () {
+                  // Optional: Refresh UI or navigate after sign out
+                  Navigator.pushReplacementNamed(context, '/accueil');
+                },
               ),
-            ),
-            SizedBox(width: size.width * 0.02),
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/signup'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8A4FFF),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  horizontal: size.width * 0.04,
-                  vertical: size.height * 0.015,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-              child: Text(
-                'Inscription',
-                style: TextStyle(
-                  fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -319,4 +331,3 @@ class AccueilScreen extends StatelessWidget {
     );
   }
 }
-

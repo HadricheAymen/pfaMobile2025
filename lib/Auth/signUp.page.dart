@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
@@ -11,9 +12,15 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   bool _showPassword = false;
   bool _termsAccepted = false;
+  TextEditingController email = new TextEditingController();
+  TextEditingController firstName = new TextEditingController();
+  TextEditingController lastName = new TextEditingController();
+  TextEditingController pwd = new TextEditingController();
+  TextEditingController repeatpwd = new TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   void _showTermsDialog() {
+    final size = MediaQuery.of(context).size;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -22,7 +29,10 @@ class _SignUpPageState extends State<SignUpPage> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+            constraints: BoxConstraints(
+              maxWidth: size.width < 650 ? size.width * 0.95 : 600,
+              maxHeight: size.height < 700 ? size.height * 0.85 : 600,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -34,7 +44,8 @@ class _SignUpPageState extends State<SignUpPage> {
                       topRight: Radius.circular(20),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -53,16 +64,16 @@ class _SignUpPageState extends State<SignUpPage> {
                     ],
                   ),
                 ),
-                Expanded(
+                const Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           '1. Acceptation des conditions',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -115,6 +126,7 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   void _showPrivacyDialog() {
+    final size = MediaQuery.of(context).size;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -123,7 +135,10 @@ class _SignUpPageState extends State<SignUpPage> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+            constraints: BoxConstraints(
+              maxWidth: size.width < 650 ? size.width * 0.95 : 600,
+              maxHeight: size.height < 700 ? size.height * 0.85 : 600,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -135,7 +150,8 @@ class _SignUpPageState extends State<SignUpPage> {
                       topRight: Radius.circular(20),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -143,7 +159,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         'Politique de confidentialité',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -154,12 +170,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     ],
                   ),
                 ),
-                Expanded(
+                const Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           '1. Collecte des données',
                           style: TextStyle(
@@ -311,85 +327,161 @@ class _SignUpPageState extends State<SignUpPage> {
                                 SizedBox(height: size.height * 0.04),
 
                                 // First Name & Last Name Row
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                isSmallScreen
+                                    ? Column(
                                         children: [
-                                          Text(
-                                            'Prénom',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: size.width *
-                                                  (isSmallScreen
-                                                      ? 0.035
-                                                      : 0.025),
+                                          // Prénom
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Prénom',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: size.width * 0.035,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              TextFormField(
+                                                controller: firstName,
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Le prénom est requis';
+                                                  }
+                                                  return null;
+                                                },
+                                                decoration: InputDecoration(
+                                                  hintText: 'Votre prénom',
+                                                  prefixIcon: const Icon(
+                                                      Icons.person_outline),
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: size.height * 0.02),
+                                          // Nom
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Nom',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: size.width * 0.035,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              TextFormField(
+                                                controller: lastName,
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Le nom est requis';
+                                                  }
+                                                  return null;
+                                                },
+                                                decoration: InputDecoration(
+                                                  hintText: 'Votre nom',
+                                                  prefixIcon: const Icon(
+                                                      Icons.person_outline),
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Prénom',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize:
+                                                        size.width * 0.025,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                TextFormField(
+                                                  controller: firstName,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.isEmpty) {
+                                                      return 'Le prénom est requis';
+                                                    }
+                                                    return null;
+                                                  },
+                                                  decoration: InputDecoration(
+                                                    hintText: 'Votre prénom',
+                                                    prefixIcon: const Icon(
+                                                        Icons.person_outline),
+                                                    border: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          TextFormField(
-                                            validator: (value) {
-                                              if (value == null ||
-                                                  value.isEmpty) {
-                                                return 'Le prénom est requis';
-                                              }
-                                              return null;
-                                            },
-                                            decoration: InputDecoration(
-                                              hintText: 'Votre prénom',
-                                              prefixIcon: const Icon(
-                                                  Icons.person_outline),
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
+                                          SizedBox(width: size.width * 0.04),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Nom',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize:
+                                                        size.width * 0.025,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                TextFormField(
+                                                  controller: lastName,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.isEmpty) {
+                                                      return 'Le nom est requis';
+                                                    }
+                                                    return null;
+                                                  },
+                                                  decoration: InputDecoration(
+                                                    hintText: 'Votre nom',
+                                                    prefixIcon: const Icon(
+                                                        Icons.person_outline),
+                                                    border: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    SizedBox(width: size.width * 0.04),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Nom',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: size.width *
-                                                  (isSmallScreen
-                                                      ? 0.035
-                                                      : 0.025),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          TextFormField(
-                                            validator: (value) {
-                                              if (value == null ||
-                                                  value.isEmpty) {
-                                                return 'Le nom est requis';
-                                              }
-                                              return null;
-                                            },
-                                            decoration: InputDecoration(
-                                              hintText: 'Votre nom',
-                                              prefixIcon: const Icon(
-                                                  Icons.person_outline),
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
                                 SizedBox(height: size.height * 0.02),
 
                                 // Email Field
@@ -406,6 +498,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                     ),
                                     const SizedBox(height: 8),
                                     TextFormField(
+                                      controller: email,
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
                                           return 'L\'email est requis';
@@ -445,13 +538,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                     ),
                                     const SizedBox(height: 8),
                                     TextFormField(
+                                      controller: pwd,
                                       obscureText: !_showPassword,
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
                                           return 'Le mot de passe est requis';
                                         }
                                         if (value.length < 6) {
-                                          return 'Le mot de passe doit contenir au moins 6 caractères';
+                                          return 'contenir au moins 6 caractères';
                                         }
                                         return null;
                                       },
@@ -495,6 +589,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                     ),
                                     const SizedBox(height: 8),
                                     TextFormField(
+                                      controller: repeatpwd,
                                       obscureText: !_showPassword,
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
@@ -545,24 +640,28 @@ class _SignUpPageState extends State<SignUpPage> {
                                         TextSpan(
                                           text: 'J\'accepte les ',
                                           style: TextStyle(
-                                            fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+                                            fontSize: size.width *
+                                                (isSmallScreen ? 0.035 : 0.025),
                                           ),
                                           children: [
                                             TextSpan(
                                               text: 'conditions d\'utilisation',
                                               style: const TextStyle(
                                                 color: Color(0xFF0B3CFD),
-                                                decoration: TextDecoration.underline,
+                                                decoration:
+                                                    TextDecoration.underline,
                                               ),
                                               recognizer: TapGestureRecognizer()
                                                 ..onTap = _showTermsDialog,
                                             ),
                                             const TextSpan(text: ' et la '),
                                             TextSpan(
-                                              text: 'politique de confidentialité',
+                                              text:
+                                                  'politique de confidentialité',
                                               style: const TextStyle(
                                                 color: Color(0xFF0B3CFD),
-                                                decoration: TextDecoration.underline,
+                                                decoration:
+                                                    TextDecoration.underline,
                                               ),
                                               recognizer: TapGestureRecognizer()
                                                 ..onTap = _showPrivacyDialog,
@@ -590,7 +689,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                         ? () {
                                             if (_formKey.currentState!
                                                 .validate()) {
-                                              // Handle sign up
+                                              _createUserWithEmailAndPassword();
                                             }
                                           }
                                         : null,
@@ -603,57 +702,6 @@ class _SignUpPageState extends State<SignUpPage> {
                                       ),
                                     ),
                                   ),
-                                ),
-                                SizedBox(height: size.height * 0.03),
-
-                                // Social Sign Up
-                                Text(
-                                  'Ou inscrivez-vous avec',
-                                  style: TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: size.width *
-                                        (isSmallScreen ? 0.035 : 0.025),
-                                  ),
-                                ),
-                                SizedBox(height: size.height * 0.02),
-
-                                // Social Buttons
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () {},
-                                        icon: Image.asset(
-                                          'assets/google-icon.png',
-                                          height: 24,
-                                        ),
-                                        label: const Text('Google'),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
-                                          side: BorderSide(
-                                              color: Colors.grey.shade300),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () {},
-                                        icon: const Icon(Icons.facebook,
-                                            color: Color(0xFF1877F2)),
-                                        label: const Text('Facebook'),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
-                                          side: BorderSide(
-                                              color: Colors.grey.shade300),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
                                 SizedBox(height: size.height * 0.03),
 
@@ -695,5 +743,41 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _createUserWithEmailAndPassword() async {
+    if (pwd.text.trim() != repeatpwd.text.trim()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Les mots de passe ne correspondent pas.')),
+      );
+      return;
+    }
+    try {
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.text.trim(),
+        password: pwd.text.trim(),
+      );
+      await credential.user!.updateDisplayName('${firstName.text.trim()} ${lastName.text.trim()}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compte créé avec succès!')),
+      );
+      Navigator.pushReplacementNamed(context, '/accueil');
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'weak-password') {
+        message = 'Le mot de passe est trop faible.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'Un compte existe déjà pour cet email.';
+      } else {
+        message = 'Erreur lors de la création du compte.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
   }
 }

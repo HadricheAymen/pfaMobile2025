@@ -36,41 +36,41 @@ class _IrisFormState extends State<IrisForm> {
   }
 
   Future<void> _analyzeIris() async {
-    if (_image == null) return;
+    // if (_image == null) return;
 
-    setState(() {
-      _isAnalyzing = true;
-    });
+    // setState(() {
+    //   _isAnalyzing = true;
+    // });
 
-    // Simulate AI analysis with delay (replace with actual API call)
-    await Future.delayed(const Duration(seconds: 3));
+    // // Simulate AI analysis with delay (replace with actual API call)
+    // await Future.delayed(const Duration(seconds: 3));
 
-    // Generate random results for demonstration
-    final types = ['Fleur', 'Bijou', 'Flux', 'Shaker'];
-    final routes = ['fleur', 'bijou', 'flux', 'shaker'];
+    // // Generate random results for demonstration
+    // final types = ['Fleur', 'Bijou', 'Flux', 'Shaker'];
+    // final routes = ['fleur', 'bijou', 'flux', 'shaker'];
 
-    // Generate random percentages that total 100%
-    final random = DateTime.now().millisecondsSinceEpoch;
-    final fleur = random % 100;
-    final bijou = random % (100 - fleur);
-    final flux = random % (100 - fleur - bijou);
-    final shaker = 100 - fleur - bijou - flux;
+    // // Generate random percentages that total 100%
+    // final random = DateTime.now().millisecondsSinceEpoch;
+    // final fleur = random % 100;
+    // final bijou = random % (100 - fleur);
+    // final flux = random % (100 - fleur - bijou);
+    // final shaker = 100 - fleur - bijou - flux;
 
-    final percentages = [fleur, bijou, flux, shaker];
-    final maxIndex =
-        percentages.indexOf(percentages.reduce((a, b) => a > b ? a : b));
+    // final percentages = [fleur, bijou, flux, shaker];
+    // final maxIndex =
+    //     percentages.indexOf(percentages.reduce((a, b) => a > b ? a : b));
 
-    setState(() {
-      _analysisResult = {
-        'primaryType': types[maxIndex],
-        'primaryTypeRoute': routes[maxIndex],
-        'fleurPercentage': fleur,
-        'bijouPercentage': bijou,
-        'fluxPercentage': flux,
-        'shakerPercentage': shaker,
-      };
-      _isAnalyzing = false;
-    });
+    // setState(() {
+    //   _analysisResult = {
+    //     'primaryType': types[maxIndex],
+    //     'primaryTypeRoute': routes[maxIndex],
+    //     'fleurPercentage': fleur,
+    //     'bijouPercentage': bijou,
+    //     'fluxPercentage': flux,
+    //     'shakerPercentage': shaker,
+    //   };
+    //   _isAnalyzing = false;
+    // });
   }
 
   @override
@@ -116,7 +116,7 @@ class _IrisFormState extends State<IrisForm> {
   Widget _buildHeader() {
     return Column(
       children: [
-        Text(
+        const Text(
           'Analysez votre iris',
           style: TextStyle(
             fontSize: 24,
@@ -124,7 +124,7 @@ class _IrisFormState extends State<IrisForm> {
             fontFamily: 'Playfair Display',
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
           'Découvrez votre type d\'iris grâce à notre IA',
           style: TextStyle(
@@ -133,11 +133,11 @@ class _IrisFormState extends State<IrisForm> {
           ),
         ),
         Container(
-          margin: EdgeInsets.symmetric(vertical: 16),
+          margin: const EdgeInsets.symmetric(vertical: 16),
           width: 80,
           height: 3,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [Colors.purple, Colors.blue, Colors.green, Colors.orange],
             ),
             borderRadius: BorderRadius.circular(3),
@@ -163,22 +163,22 @@ class _IrisFormState extends State<IrisForm> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.camera_alt, size: 48, color: Colors.grey[400]),
-                SizedBox(height: 16),
-                Text('Prenez une photo de votre iris'),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
+                const Text('Prenez une photo de votre iris'),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => _pickImage(ImageSource.camera),
-                      icon: Icon(Icons.camera_alt),
-                      label: Text('Caméra'),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Caméra'),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     ElevatedButton.icon(
                       onPressed: () => _pickImage(ImageSource.gallery),
-                      icon: Icon(Icons.photo_library),
-                      label: Text('Galerie'),
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Galerie'),
                     ),
                   ],
                 ),
@@ -194,32 +194,32 @@ class _IrisFormState extends State<IrisForm> {
         children: [
           TextFormField(
             controller: _nameController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Nom',
               border: OutlineInputBorder(),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _emailController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Email',
               border: OutlineInputBorder(),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _ageController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Âge',
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _selectedGender.isEmpty ? null : _selectedGender,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Genre',
               border: OutlineInputBorder(),
             ),
@@ -235,10 +235,10 @@ class _IrisFormState extends State<IrisForm> {
               });
             },
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _commentsController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Commentaires',
               border: OutlineInputBorder(),
             ),
@@ -253,13 +253,13 @@ class _IrisFormState extends State<IrisForm> {
     return ElevatedButton(
       onPressed: _image == null || _isAnalyzing ? null : _analyzeIris,
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
         ),
       ),
       child: _isAnalyzing
-          ? Row(
+          ? const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
@@ -274,13 +274,13 @@ class _IrisFormState extends State<IrisForm> {
                 Text('Analyse en cours...'),
               ],
             )
-          : Text('Analyser mon iris'),
+          : const Text('Analyser mon iris'),
     );
   }
 
   Widget _buildResults(Size size) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -288,22 +288,22 @@ class _IrisFormState extends State<IrisForm> {
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
-            offset: Offset(0, 5),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Résultat de l\'analyse',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          Divider(),
-          Text(
+          const Divider(),
+          const Text(
             'Votre type d\'iris principal :',
             style: TextStyle(fontSize: 16),
           ),
@@ -315,7 +315,7 @@ class _IrisFormState extends State<IrisForm> {
               color: Theme.of(context).primaryColor,
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildPercentageBar('Fleur', _analysisResult!['fleurPercentage']),
           _buildPercentageBar('Bijou', _analysisResult!['bijouPercentage']),
           _buildPercentageBar('Flux', _analysisResult!['fluxPercentage']),
@@ -332,7 +332,7 @@ class _IrisFormState extends State<IrisForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('$label: $percentage%'),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey[200],

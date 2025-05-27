@@ -41,21 +41,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDlpE0ecEpVuiQjaXvgCilntDCVl3mWmlg',
-    appId: '1:83392557786:web:c1aa6e414acdaa612aabe3',
-    messagingSenderId: '83392557786',
-    projectId: 'pfamobile-32a1b',
-    authDomain: 'pfamobile-32a1b.firebaseapp.com',
-    storageBucket: 'pfamobile-32a1b.firebasestorage.app',
-    measurementId: 'G-THG3F9XERQ',
+    apiKey: 'AIzaSyAkdthQO0aaXLR-wVaYYB5C_0HgSESWGns',
+    appId: '1:770202078532:web:ae40074feaca3f62011b11',
+    messagingSenderId: '770202078532',
+    projectId: 'profilingiris',
+    authDomain: 'profilingiris.firebaseapp.com',
+    storageBucket: 'profilingiris.firebasestorage.app',
+    measurementId: 'G-ER3TYLNDY7',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB2X4cjUTBzIsR4vmvbNB_lidjEH-IVM44',
-    appId: '1:83392557786:android:0cb9004693546e982aabe3',
-    messagingSenderId: '83392557786',
-    projectId: 'pfamobile-32a1b',
-    storageBucket: 'pfamobile-32a1b.firebasestorage.app',
+    apiKey: 'AIzaSyBYQyz99Po4zvQlu58y1tzNBxBve6GG8MA',
+    appId: '1:770202078532:android:df38f9181561ce9b011b11',
+    messagingSenderId: '770202078532',
+    projectId: 'profilingiris',
+    storageBucket: 'profilingiris.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

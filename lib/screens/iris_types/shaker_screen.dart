@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-const shakerPrimaryColor = Color(0xFFFF8A4F);
-const shakerSecondaryColor = Color(0xFFFFB892);
-const shakerGradientStart = Color(0xFFFFF0E6);
-const shakerGradientEnd = Color(0xFFFFE6E0);
+const shakerPrimaryColor = Color(0xFF4F8AFF);
+const shakerSecondaryColor = Color(0xFF92B8FF);
+const shakerGradientStart = Color(0xFFE6F0FF);
+const shakerGradientEnd = Color(0xFFE0E6FF);
 
 class ShakerScreen extends StatelessWidget {
   const ShakerScreen({Key? key}) : super(key: key);

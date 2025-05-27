@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 // Update the color constants
-const fleurPrimaryColor = Color(0xFF8A4FFF);
-const fleurSecondaryColor = Color(0xFFB892FF);
-const fleurGradientStart = Color(0xFFF0E6FF);
-const fleurGradientEnd = Color(0xFFE6E0FF);
+const fleurPrimaryColor = Color(0xFF4F8AFF);
+const fleurSecondaryColor = Color(0xFF92B8FF);
+const fleurGradientStart = Color(0xFFE6F0FF);
+const fleurGradientEnd = Color(0xFFE0E6FF);
 
 class FleurScreen extends StatelessWidget {
   const FleurScreen({Key? key}) : super(key: key);

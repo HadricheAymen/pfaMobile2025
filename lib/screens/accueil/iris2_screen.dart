@@ -46,7 +46,7 @@ class Iris2Screen extends StatelessWidget {
                           'Profil axé sur les émotions et la créativité. Expressif, spontané et artistique.',
                       imagePath: 'assets/1.png',
                       route: '/fleur',
-                      color: const Color(0xFF8A4FFF), // Fleur color
+                      color: const Color(0xFF4F8AFF), // Fleur color
                     ),
                     SizedBox(height: size.height * 0.03),
                     _buildIrisCard(
@@ -68,7 +68,7 @@ class Iris2Screen extends StatelessWidget {
                           'Profil sensible et intuitif. Empathique, adaptable et orienté vers les autres.',
                       imagePath: 'assets/3.png',
                       route: '/flux',
-                      color: const Color(0xFF4FFF8A), // Flux color
+                      color: const Color(0xFF4F8AFF), // Flux color
                     ),
                     SizedBox(height: size.height * 0.03),
                     _buildIrisCard(
@@ -79,7 +79,7 @@ class Iris2Screen extends StatelessWidget {
                           'Type motivé, expressif et orienté action. Énergique, innovant et inspirant.',
                       imagePath: 'assets/4.png',
                       route: '/shaker',
-                      color: const Color(0xFFFF8A4F), // Shaker color
+                      color: const Color(0xFF4F8AFF), // Shaker color
                     ),
                   ],
                 ),
@@ -131,7 +131,7 @@ class Iris2Screen extends StatelessWidget {
                   children: [
                     TextButton.icon(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/typeiris');
+                        Navigator.pop(context);
                       },
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Retour'),
