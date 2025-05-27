@@ -1,0 +1,22 @@
+<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond de l'iris -->
+  <circle cx="50" cy="50" r="45" fill="#708090" />
+  
+  <!-- Pupille -->
+  <circle cx="50" cy="50" r="15" fill="#1a1a1a" />
+  
+  <!-- Rayons de l'iris -->
+  <g stroke="#505a6a" stroke-width="1">
+    <line x1="50" y1="5" x2="50" y2="95" />
+    <line x1="5" y1="50" x2="95" y2="50" />
+    <line x1="15" y1="15" x2="85" y2="85" />
+    <line x1="15" y1="85" x2="85" y2="15" />
+    <line x1="30" y1="5" x2="70" y2="95" />
+    <line x1="5" y1="30" x2="95" y2="70" />
+    <line x1="30" y1="95" x2="70" y2="5" />
+    <line x1="5" y1="70" x2="95" y2="30" />
+  </g>
+  
+  <!-- Contour de l'iris -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#404a5a" stroke-width="2" />
+</svg>

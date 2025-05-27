@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "83392557786",
+    "project_id": "pfamobile-32a1b",
+    "storage_bucket": "pfamobile-32a1b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:83392557786:android:0cb9004693546e982aabe3",
+        "android_client_info": {
+          "package_name": "com.example.pfa_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2X4cjUTBzIsR4vmvbNB_lidjEH-IVM44"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
