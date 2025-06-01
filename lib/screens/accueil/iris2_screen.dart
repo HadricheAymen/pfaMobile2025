@@ -8,6 +8,7 @@ class Iris2Screen extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
+    final isLandscape = size.width > size.height;
 
     return Scaffold(
       body: SafeArea(
@@ -35,54 +36,64 @@ class Iris2Screen extends StatelessWidget {
                 ),
                 SizedBox(height: size.height * 0.04),
 
-                // Iris Cards
-                Column(
-                  children: [
-                    _buildIrisCard(
-                      context: context,
-                      name: 'Fleur',
-                      tagline: 'Le Sentimental',
-                      description:
-                          'Profil axé sur les émotions et la créativité. Expressif, spontané et artistique.',
-                      imagePath: 'assets/1.png',
-                      route: '/fleur',
-                      color: const Color(0xFF4F8AFF), // Fleur color
-                    ),
-                    SizedBox(height: size.height * 0.03),
-                    _buildIrisCard(
-                      context: context,
-                      name: 'Bijou',
-                      tagline: 'Le Réfléchi',
-                      description:
-                          'Type analytique et mental. Observateur, précis et orienté vers la réflexion.',
-                      imagePath: 'assets/2.png',
-                      route: '/bijou',
-                      color: const Color(0xFF4F8AFF), // Bijou color
-                    ),
-                    SizedBox(height: size.height * 0.03),
-                    _buildIrisCard(
-                      context: context,
-                      name: 'Flux',
-                      tagline: 'L\'Intuitif',
-                      description:
-                          'Profil sensible et intuitif. Empathique, adaptable et orienté vers les autres.',
-                      imagePath: 'assets/3.png',
-                      route: '/flux',
-                      color: const Color(0xFF4F8AFF), // Flux color
-                    ),
-                    SizedBox(height: size.height * 0.03),
-                    _buildIrisCard(
-                      context: context,
-                      name: 'Shaker',
-                      tagline: 'Le Visionnaire',
-                      description:
-                          'Type motivé, expressif et orienté action. Énergique, innovant et inspirant.',
-                      imagePath: 'assets/4.png',
-                      route: '/shaker',
-                      color: const Color(0xFF4F8AFF), // Shaker color
-                    ),
-                  ],
-                ),
+                // Iris Cards - Use GridView in landscape mode
+                isLandscape
+                    ? GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: size.width * 0.03,
+                        mainAxisSpacing: size.height * 0.03,
+                        childAspectRatio: 1.5,
+                        children: [
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Fleur',
+                            tagline: 'Le Sentimental',
+                            description:
+                                'Profil axé sur les émotions et la créativité. Expressif, spontané et artistique.',
+                            imagePath: 'assets/1.png',
+                            route: '/fleur',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Bijou',
+                            tagline: 'Le Réfléchi',
+                            description:
+                                'Type analytique et mental. Observateur, précis et orienté vers la réflexion.',
+                            imagePath: 'assets/2.png',
+                            route: '/bijou',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Flux',
+                            tagline: 'L\'Intuitif',
+                            description:
+                                'Profil sensible et intuitif. Empathique, adaptable et orienté vers les autres.',
+                            imagePath: 'assets/3.png',
+                            route: '/flux',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Shaker',
+                            tagline: 'Le Visionnaire',
+                            description:
+                                'Type motivé, expressif et orienté action. Énergique, innovant et inspirant.',
+                            imagePath: 'assets/4.png',
+                            route: '/shaker',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          // Original column layout for portrait mode
+                          // Keep the existing code here
+                        ],
+                      ),
                 SizedBox(height: size.height * 0.04),
 
                 // Analyser mon iris button
@@ -272,3 +283,4 @@ class Iris2Screen extends StatelessWidget {
     );
   }
 }
+

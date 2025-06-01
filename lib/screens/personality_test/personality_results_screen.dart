@@ -273,7 +273,7 @@ class PersonalityResultsScreen extends StatelessWidget {
                           (route) => false,
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4CAF50),
+                          backgroundColor: const Color(0xFF8A4FFF),
                           padding: EdgeInsets.symmetric(
                             vertical: size.height * 0.02,
                           ),
@@ -305,7 +305,7 @@ class PersonalityResultsScreen extends StatelessWidget {
                         child: Text(
                           'Retour à l\'accueil',
                           style: TextStyle(
-                            color: const Color(0xFF4CAF50),
+                            color: const Color(0xFF8A4FFF),
                             fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
                             fontWeight: FontWeight.w500,
                           ),

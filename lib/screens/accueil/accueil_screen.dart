@@ -11,8 +11,10 @@ class AccueilScreen extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
 
-    return WillPopScope(
-      onWillPop: () async => false, // Prevent back navigation
+    return PopScope(
+      canPop: false, // Prevent back navigation
+      onPopInvokedWithResult:
+          (didPop, result) {}, // No action needed, just block pop
       child: Scaffold(
         body: SingleChildScrollView(
           child: Container(
@@ -92,7 +94,7 @@ class AccueilScreen extends StatelessWidget {
                               Navigator.pushNamed(context, '/personality-test');
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
+                              backgroundColor: const Color(0xFF8A4FFF),
                               padding: EdgeInsets.symmetric(
                                 horizontal: size.width * 0.04,
                                 vertical: size.height * 0.02,
@@ -155,7 +157,8 @@ class AccueilScreen extends StatelessWidget {
             ? Row(
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    onPressed: () => Navigator.pushNamed(
+                        context, '/signin'), // Changed from /login to /signin
                     child: Text(
                       'Connexion',
                       style: TextStyle(

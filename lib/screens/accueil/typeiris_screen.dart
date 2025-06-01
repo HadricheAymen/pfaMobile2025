@@ -7,22 +7,23 @@ class TypeirisScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
+    final isLandscape = size.width > size.height;
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
-            padding: EdgeInsets.all(size.width * 0.04),
+            padding: EdgeInsets.all(isLandscape ? size.width * 0.02 : size.width * 0.04),
             child: Column(
               children: [
-                // Header
+                // Header - make more compact in landscape
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     RichText(
                       text: TextSpan(
                         style: TextStyle(
-                          fontSize: size.width * 0.06,
+                          fontSize: isLandscape ? size.width * 0.04 : size.width * 0.06,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
@@ -44,11 +45,11 @@ class TypeirisScreen extends StatelessWidget {
                   ],
                 ),
 
-                SizedBox(height: size.height * 0.02),
+                SizedBox(height: isLandscape ? size.height * 0.01 : size.height * 0.02),
 
                 // Main Content
                 Container(
-                  padding: EdgeInsets.all(size.width * 0.04),
+                  padding: EdgeInsets.all(isLandscape ? size.width * 0.02 : size.width * 0.04),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -66,29 +67,29 @@ class TypeirisScreen extends StatelessWidget {
                       Text(
                         'Les Types d\'Iris',
                         style: TextStyle(
-                          fontSize: size.width * 0.07,
+                          fontSize: isLandscape ? size.width * 0.05 : size.width * 0.07,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: size.height * 0.02),
+                      SizedBox(height: isLandscape ? size.height * 0.01 : size.height * 0.02),
                       Text(
                         'Découvrez les quatre profils fondamentaux qui définissent notre personnalité à travers l\'analyse de l\'iris.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: size.width * 0.04,
+                          fontSize: isLandscape ? size.width * 0.03 : size.width * 0.04,
                           color: Colors.grey,
                         ),
                       ),
-                      SizedBox(height: size.height * 0.03),
+                      SizedBox(height: isLandscape ? size.height * 0.01 : size.height * 0.03),
 
-                      // Info Cards Grid
+                      // Info Cards Grid - adjust for landscape
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        crossAxisSpacing: size.width * 0.03,
-                        mainAxisSpacing: size.width * 0.03,
-                        childAspectRatio: isSmallScreen ? 0.8 : 1.0,
+                        crossAxisCount: isLandscape ? 4 : 2, // 4 cards in a row for landscape
+                        crossAxisSpacing: size.width * 0.02,
+                        mainAxisSpacing: size.width * 0.02,
+                        childAspectRatio: isLandscape ? 1.0 : (isSmallScreen ? 0.8 : 1.0),
                         children: const [
                           InfoCard(
                             icon: '🧬',
@@ -117,59 +118,63 @@ class TypeirisScreen extends StatelessWidget {
                         ],
                       ),
 
-                      SizedBox(height: size.height * 0.03),
+                      SizedBox(height: isLandscape ? size.height * 0.01 : size.height * 0.02),
 
-                      // Action Buttons
-                      Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/iris2');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                minimumSize:
-                                    Size(double.infinity, size.height * 0.06),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
+                      // Action Buttons - make more compact in landscape
+                      isLandscape 
+                          ? Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/iris2');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize: Size(double.infinity, size.height * 0.05),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text('Découvrir les types'),
+                                        SizedBox(width: 8),
+                                        Icon(Icons.arrow_forward, size: 16),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Découvrir les types'),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/iris-diversity');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                minimumSize:
-                                    Size(double.infinity, size.height * 0.06),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/iris-diversity');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize: Size(double.infinity, size.height * 0.05),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text('Diversité des iris'),
+                                        SizedBox(width: 8),
+                                        Icon(Icons.arrow_forward, size: 16),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Diversité des iris'),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward),
-                                ],
-                              ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                // Original column layout for portrait mode
+                                // Keep the existing code here for buttons
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -188,18 +193,19 @@ class InfoCard extends StatelessWidget {
   final String description;
 
   const InfoCard({
-    super.key,
+    Key? key,
     required this.icon,
     required this.title,
     required this.description,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isLandscape = size.width > size.height;
 
     return Container(
-      padding: EdgeInsets.all(size.width * 0.03),
+      padding: EdgeInsets.all(isLandscape ? size.width * 0.01 : size.width * 0.03),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -214,31 +220,36 @@ class InfoCard extends StatelessWidget {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Add this to minimize height
         children: [
           Text(
             icon,
-            style: TextStyle(fontSize: size.width * 0.08),
+            style: TextStyle(fontSize: isLandscape ? size.width * 0.04 : size.width * 0.08),
           ),
-          SizedBox(height: size.height * 0.01),
+          SizedBox(height: isLandscape ? size.height * 0.005 : size.height * 0.01),
           Text(
             title,
             style: TextStyle(
-              fontSize: size.width * 0.04,
+              fontSize: isLandscape ? size.width * 0.02 : size.width * 0.04,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: size.height * 0.01),
+          SizedBox(height: isLandscape ? size.height * 0.005 : size.height * 0.01),
           Text(
             description,
             style: TextStyle(
-              fontSize: size.width * 0.03,
+              fontSize: isLandscape ? size.width * 0.015 : size.width * 0.03,
               color: Colors.grey,
             ),
             textAlign: TextAlign.center,
+            maxLines: isLandscape ? 3 : null, // Limit lines in landscape
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 }
+
+

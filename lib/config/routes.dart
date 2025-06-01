@@ -18,7 +18,7 @@ class AppRoutes {
 
   // Define all route names as constants
   static const String accueil = '/accueil';
-  static const String login = '/login';
+  static const String signin = '/signin'; // Changed from login to signin
   static const String signup = '/signup';
   static const String suivantacc = '/suivantacc';
   static const String typeiris = '/typeiris';
@@ -34,7 +34,7 @@ class AppRoutes {
   // Define all routes
   static Map<String, WidgetBuilder> get routes => {
         accueil: (context) => const AccueilScreen(),
-        login: (context) => const SignInPage(),
+        signin: (context) => const SignInPage(),
         signup: (context) => const SignUpPage(),
         suivantacc: (context) => const SuivantaccScreen(),
         typeiris: (context) => const TypeirisScreen(),
@@ -59,3 +59,4 @@ class AppRoutes {
     );
   }
 }
+

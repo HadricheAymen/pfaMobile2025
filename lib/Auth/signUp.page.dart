@@ -44,8 +44,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       topRight: Radius.circular(20),
                     ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -73,7 +72,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         Text(
                           '1. Acceptation des conditions',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -95,7 +94,32 @@ class _SignUpPageState extends State<SignUpPage> {
                           'Vous acceptez d\'utiliser le service conformément à toutes les lois et réglementations applicables. Vous êtes responsable de maintenir la confidentialité de votre compte.',
                           style: TextStyle(fontSize: 14),
                         ),
-                        // Add more sections as needed
+                        SizedBox(height: 20),
+                        Text(
+                          '3. Propriété intellectuelle',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Tous les droits de propriété intellectuelle liés à l\'application IrisLock sont la propriété exclusive de notre entreprise. Aucune partie de l\'application ne peut être reproduite sans notre autorisation écrite préalable.',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          '4. Limitation de responsabilité',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Notre application est fournie "telle quelle" sans garantie d\'aucune sorte. Nous ne serons pas responsables des dommages directs, indirects, accessoires ou consécutifs résultant de l\'utilisation de notre application.',
+                          style: TextStyle(fontSize: 14),
+                        ),
                       ],
                     ),
                   ),
@@ -150,8 +174,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       topRight: Radius.circular(20),
                     ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -201,7 +224,45 @@ class _SignUpPageState extends State<SignUpPage> {
                           'Vos données sont utilisées uniquement pour fournir et améliorer nos services. Nous ne vendons pas vos informations personnelles à des tiers.',
                           style: TextStyle(fontSize: 14),
                         ),
-                        // Add more sections as needed
+                        SizedBox(height: 20),
+                        Text(
+                          '3. Protection des données',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles pour protéger vos données personnelles contre tout accès non autorisé, perte ou altération.',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          '4. Vos droits',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Vous avez le droit d\'accéder à vos données personnelles, de les rectifier, de les supprimer ou d\'en limiter le traitement. Vous pouvez également vous opposer au traitement de vos données et exercer votre droit à la portabilité des données.',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          '5. Conservation des données',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Nous conservons vos données personnelles aussi longtemps que nécessaire pour fournir nos services ou pour respecter nos obligations légales.',
+                          style: TextStyle(fontSize: 14),
+                        ),
                       ],
                     ),
                   ),

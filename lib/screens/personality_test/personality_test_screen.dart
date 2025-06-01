@@ -4,6 +4,7 @@ import '../../models/personality_test_models.dart';
 import '../../services/personality_test_service.dart';
 import '../../data/personality_questions.dart';
 import 'personality_results_screen.dart';
+import '../../utils/responsive_utils.dart';
 
 class PersonalityTestScreen extends StatefulWidget {
   const PersonalityTestScreen({super.key});
@@ -32,7 +33,23 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    _checkAuthentication();
+  }
+
+  Future<void> _checkAuthentication() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      // Delay navigation to avoid build errors
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(context, '/signup');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Veuillez vous connecter pour accéder au test de personnalité')),
+        );
+      });
+    } else {
+      _initializeApp();
+    }
   }
 
   Future<void> _initializeApp() async {
@@ -164,8 +181,36 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
         completedAt: DateTime.now(),
       );
 
-      // Save complete session
-      await _testService.saveTestSession(completedSession);
+      // Save complete session to Firebase
+      final saveSuccess = await _testService.saveTestSession(completedSession);
+
+      if (saveSuccess) {
+        // Also save a summary result for analytics
+        await _testService.saveTestSummary(completedSession);
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Résultats sauvegardés avec succès!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // Show warning if save failed but still proceed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('⚠️ Erreur de sauvegarde, mais résultats disponibles'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
 
       // Navigate to results
       if (mounted) {
@@ -196,9 +241,6 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 600;
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -210,18 +252,18 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
         ),
         child: SafeArea(
           child: _isLoadingQuestions
-              ? _buildLoadingInterface(size, isSmallScreen)
+              ? _buildLoadingInterface(context)
               : _errorMessage != null
-                  ? _buildErrorInterface(size, isSmallScreen)
+                  ? _buildErrorInterface(context)
                   : _isTestStarted
-                      ? _buildTestInterface(size, isSmallScreen)
-                      : _buildIntroInterface(size, isSmallScreen),
+                      ? _buildTestInterface(context)
+                      : _buildIntroInterface(context),
         ),
       ),
     );
   }
 
-  Widget _buildLoadingInterface(Size size, bool isSmallScreen) {
+  Widget _buildLoadingInterface(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -229,11 +271,24 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
           const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
           ),
-          SizedBox(height: size.height * 0.03),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.03,
+            mobileLandscape: 0.02,
+            tabletPortrait: 0.035,
+            tabletLandscape: 0.025,
+          )),
           Text(
             'Chargement des questions...',
             style: TextStyle(
-              fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.04,
+                mobileLandscape: 0.032,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.03,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
               color: Colors.grey[600],
             ),
           ),
@@ -242,46 +297,95 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
     );
   }
 
-  Widget _buildErrorInterface(Size size, bool isSmallScreen) {
+  Widget _buildErrorInterface(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(size.width * 0.06),
+      padding: context.responsivePadding(
+        mobilePortrait: 0.06,
+        mobileLandscape: 0.05,
+        tabletPortrait: 0.07,
+        tabletLandscape: 0.06,
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.error_outline,
-            size: size.width * 0.15,
+            size: context.responsiveFontSize(
+              mobilePortrait: 0.15,
+              mobileLandscape: 0.12,
+              tabletPortrait: 0.12,
+              tabletLandscape: 0.1,
+              desktopPortrait: 0.1,
+              desktopLandscape: 0.08,
+            ),
             color: Colors.red[400],
           ),
-          SizedBox(height: size.height * 0.03),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.03,
+            mobileLandscape: 0.02,
+            tabletPortrait: 0.035,
+            tabletLandscape: 0.025,
+          )),
           Text(
             'Erreur de chargement',
             style: TextStyle(
-              fontSize: size.width * (isSmallScreen ? 0.05 : 0.04),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.05,
+                mobileLandscape: 0.04,
+                tabletPortrait: 0.045,
+                tabletLandscape: 0.038,
+                desktopPortrait: 0.04,
+                desktopLandscape: 0.035,
+              ),
               fontWeight: FontWeight.bold,
               color: Colors.red[700],
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: size.height * 0.02),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.02,
+            mobileLandscape: 0.015,
+            tabletPortrait: 0.025,
+            tabletLandscape: 0.018,
+          )),
           Text(
             _errorMessage ?? 'Une erreur est survenue',
             style: TextStyle(
-              fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.035,
+                mobileLandscape: 0.028,
+                tabletPortrait: 0.03,
+                tabletLandscape: 0.025,
+                desktopPortrait: 0.025,
+                desktopLandscape: 0.02,
+              ),
               color: Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: size.height * 0.04),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.04,
+            mobileLandscape: 0.03,
+            tabletPortrait: 0.045,
+            tabletLandscape: 0.035,
+          )),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
                   onPressed: _loadQuestions,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
+                    backgroundColor: const Color(0xFF8A4FFF),
                     padding: EdgeInsets.symmetric(
-                      vertical: size.height * 0.02,
+                      vertical: context.responsiveSpacing(
+                        mobilePortrait: 0.02,
+                        mobileLandscape: 0.015,
+                        tabletPortrait: 0.025,
+                        tabletLandscape: 0.018,
+                      ),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
@@ -291,21 +395,41 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                     'Réessayer',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
+                      fontSize: context.responsiveFontSize(
+                        mobilePortrait: 0.04,
+                        mobileLandscape: 0.032,
+                        tabletPortrait: 0.035,
+                        tabletLandscape: 0.03,
+                        desktopPortrait: 0.03,
+                        desktopLandscape: 0.025,
+                      ),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
-              SizedBox(width: size.width * 0.04),
+              SizedBox(
+                  width: context.responsiveSpacing(
+                mobilePortrait: 0.04,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.045,
+                tabletLandscape: 0.04,
+              )),
               Expanded(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Retour',
                     style: TextStyle(
-                      color: const Color(0xFF4CAF50),
-                      fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
+                      color: const Color(0xFF8A4FFF),
+                      fontSize: context.responsiveFontSize(
+                        mobilePortrait: 0.04,
+                        mobileLandscape: 0.032,
+                        tabletPortrait: 0.035,
+                        tabletLandscape: 0.03,
+                        desktopPortrait: 0.03,
+                        desktopLandscape: 0.025,
+                      ),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -318,12 +442,17 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
     );
   }
 
-  Widget _buildTestInterface(Size size, bool isSmallScreen) {
+  Widget _buildTestInterface(BuildContext context) {
     final currentQuestion = _questions[_currentQuestionIndex];
     final progress = (_currentQuestionIndex + 1) / _questions.length;
 
     return Padding(
-      padding: EdgeInsets.all(size.width * 0.06),
+      padding: context.responsivePadding(
+        mobilePortrait: 0.06,
+        mobileLandscape: 0.05,
+        tabletPortrait: 0.07,
+        tabletLandscape: 0.06,
+      ),
       child: Column(
         children: [
           // Header with progress
@@ -339,7 +468,12 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                       }
                     : null,
                 icon: const Icon(Icons.arrow_back),
-                iconSize: size.width * 0.06,
+                iconSize: context.responsiveFontSize(
+                  mobilePortrait: 0.06,
+                  mobileLandscape: 0.05,
+                  tabletPortrait: 0.055,
+                  tabletLandscape: 0.048,
+                ),
               ),
               Expanded(
                 child: Column(
@@ -347,17 +481,30 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                     Text(
                       'Question ${_currentQuestionIndex + 1} sur ${_questions.length}',
                       style: TextStyle(
-                        fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
+                        fontSize: context.responsiveFontSize(
+                          mobilePortrait: 0.04,
+                          mobileLandscape: 0.032,
+                          tabletPortrait: 0.035,
+                          tabletLandscape: 0.03,
+                          desktopPortrait: 0.03,
+                          desktopLandscape: 0.025,
+                        ),
                         fontWeight: FontWeight.w600,
                         color: Colors.grey[700],
                       ),
                     ),
-                    SizedBox(height: size.height * 0.01),
+                    SizedBox(
+                        height: context.responsiveSpacing(
+                      mobilePortrait: 0.01,
+                      mobileLandscape: 0.005,
+                      tabletPortrait: 0.012,
+                      tabletLandscape: 0.008,
+                    )),
                     LinearProgressIndicator(
                       value: progress,
                       backgroundColor: Colors.grey[300],
                       valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF4CAF50)),
+                          Color(0xFF8A4FFF)),
                       minHeight: 4,
                     ),
                   ],
@@ -366,12 +513,23 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
               IconButton(
                 onPressed: () => _showExitDialog(),
                 icon: const Icon(Icons.close),
-                iconSize: size.width * 0.06,
+                iconSize: context.responsiveFontSize(
+                  mobilePortrait: 0.06,
+                  mobileLandscape: 0.05,
+                  tabletPortrait: 0.055,
+                  tabletLandscape: 0.048,
+                ),
               ),
             ],
           ),
 
-          SizedBox(height: size.height * 0.04),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.04,
+            mobileLandscape: 0.02,
+            tabletPortrait: 0.045,
+            tabletLandscape: 0.025,
+          )),
 
           // Question card
           Expanded(
@@ -381,7 +539,12 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Padding(
-                padding: EdgeInsets.all(size.width * 0.06),
+                padding: context.responsivePadding(
+                  mobilePortrait: 0.06,
+                  mobileLandscape: 0.05,
+                  tabletPortrait: 0.07,
+                  tabletLandscape: 0.06,
+                ),
                 child: Column(
                   children: [
                     const Spacer(),
@@ -390,7 +553,14 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                     Text(
                       currentQuestion.question,
                       style: TextStyle(
-                        fontSize: size.width * (isSmallScreen ? 0.05 : 0.04),
+                        fontSize: context.responsiveFontSize(
+                          mobilePortrait: 0.05,
+                          mobileLandscape: 0.04,
+                          tabletPortrait: 0.045,
+                          tabletLandscape: 0.038,
+                          desktopPortrait: 0.04,
+                          desktopLandscape: 0.035,
+                        ),
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF333333),
                         height: 1.4,
@@ -408,9 +578,14 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                             child: ElevatedButton(
                               onPressed: () => _answerQuestion(true),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4CAF50),
+                                backgroundColor:  const Color(0xFF8A4FFF),
                                 padding: EdgeInsets.symmetric(
-                                  vertical: size.height * 0.025,
+                                  vertical: context.responsiveSpacing(
+                                    mobilePortrait: 0.025,
+                                    mobileLandscape: 0.02,
+                                    tabletPortrait: 0.03,
+                                    tabletLandscape: 0.025,
+                                  ),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(25),
@@ -422,16 +597,32 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                                   Icon(
                                     Icons.check,
                                     color: Colors.white,
-                                    size: size.width *
-                                        (isSmallScreen ? 0.06 : 0.05),
+                                    size: context.responsiveFontSize(
+                                      mobilePortrait: 0.06,
+                                      mobileLandscape: 0.05,
+                                      tabletPortrait: 0.055,
+                                      tabletLandscape: 0.048,
+                                    ),
                                   ),
-                                  SizedBox(width: size.width * 0.02),
+                                  SizedBox(
+                                      width: context.responsiveSpacing(
+                                    mobilePortrait: 0.02,
+                                    mobileLandscape: 0.015,
+                                    tabletPortrait: 0.025,
+                                    tabletLandscape: 0.018,
+                                  )),
                                   Text(
                                     'Oui',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: size.width *
-                                          (isSmallScreen ? 0.045 : 0.035),
+                                      fontSize: context.responsiveFontSize(
+                                        mobilePortrait: 0.045,
+                                        mobileLandscape: 0.035,
+                                        tabletPortrait: 0.04,
+                                        tabletLandscape: 0.033,
+                                        desktopPortrait: 0.035,
+                                        desktopLandscape: 0.03,
+                                      ),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -439,14 +630,25 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(width: size.width * 0.04),
+                          SizedBox(
+                              width: context.responsiveSpacing(
+                            mobilePortrait: 0.04,
+                            mobileLandscape: 0.035,
+                            tabletPortrait: 0.045,
+                            tabletLandscape: 0.04,
+                          )),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () => _answerQuestion(false),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFF5722),
                                 padding: EdgeInsets.symmetric(
-                                  vertical: size.height * 0.025,
+                                  vertical: context.responsiveSpacing(
+                                    mobilePortrait: 0.025,
+                                    mobileLandscape: 0.02,
+                                    tabletPortrait: 0.03,
+                                    tabletLandscape: 0.025,
+                                  ),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(25),
@@ -458,16 +660,32 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                                   Icon(
                                     Icons.close,
                                     color: Colors.white,
-                                    size: size.width *
-                                        (isSmallScreen ? 0.06 : 0.05),
+                                    size: context.responsiveFontSize(
+                                      mobilePortrait: 0.06,
+                                      mobileLandscape: 0.05,
+                                      tabletPortrait: 0.055,
+                                      tabletLandscape: 0.048,
+                                    ),
                                   ),
-                                  SizedBox(width: size.width * 0.02),
+                                  SizedBox(
+                                      width: context.responsiveSpacing(
+                                    mobilePortrait: 0.02,
+                                    mobileLandscape: 0.015,
+                                    tabletPortrait: 0.025,
+                                    tabletLandscape: 0.018,
+                                  )),
                                   Text(
                                     'Non',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: size.width *
-                                          (isSmallScreen ? 0.045 : 0.035),
+                                      fontSize: context.responsiveFontSize(
+                                        mobilePortrait: 0.045,
+                                        mobileLandscape: 0.035,
+                                        tabletPortrait: 0.04,
+                                        tabletLandscape: 0.033,
+                                        desktopPortrait: 0.035,
+                                        desktopLandscape: 0.03,
+                                      ),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -480,20 +698,38 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
                     ] else ...[
                       const CircularProgressIndicator(
                         valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                            AlwaysStoppedAnimation<Color>( Color(0xFF8A4FFF)),
                       ),
-                      SizedBox(height: size.height * 0.02),
+                      SizedBox(
+                          height: context.responsiveSpacing(
+                        mobilePortrait: 0.02,
+                        mobileLandscape: 0.015,
+                        tabletPortrait: 0.025,
+                        tabletLandscape: 0.018,
+                      )),
                       Text(
                         'Traitement de votre réponse...',
                         style: TextStyle(
-                          fontSize:
-                              size.width * (isSmallScreen ? 0.035 : 0.025),
+                          fontSize: context.responsiveFontSize(
+                            mobilePortrait: 0.035,
+                            mobileLandscape: 0.028,
+                            tabletPortrait: 0.03,
+                            tabletLandscape: 0.025,
+                            desktopPortrait: 0.025,
+                            desktopLandscape: 0.02,
+                          ),
                           color: Colors.grey[600],
                         ),
                       ),
                     ],
 
-                    SizedBox(height: size.height * 0.02),
+                    SizedBox(
+                        height: context.responsiveSpacing(
+                      mobilePortrait: 0.02,
+                      mobileLandscape: 0.015,
+                      tabletPortrait: 0.025,
+                      tabletLandscape: 0.018,
+                    )),
                   ],
                 ),
               ),
@@ -530,9 +766,14 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
     );
   }
 
-  Widget _buildIntroInterface(Size size, bool isSmallScreen) {
+  Widget _buildIntroInterface(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(size.width * 0.06),
+      padding: context.responsivePadding(
+        mobilePortrait: 0.06,
+        mobileLandscape: 0.05,
+        tabletPortrait: 0.07,
+        tabletLandscape: 0.06,
+      ),
       child: Column(
         children: [
           // Header
@@ -541,189 +782,352 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
-                iconSize: size.width * 0.06,
+                iconSize: context.responsiveFontSize(
+                  mobilePortrait: 0.06,
+                  mobileLandscape: 0.05,
+                  tabletPortrait: 0.055,
+                  tabletLandscape: 0.048,
+                ),
               ),
               Expanded(
                 child: Text(
                   'Test de Personnalité',
                   style: TextStyle(
                     fontFamily: 'Playfair Display',
-                    fontSize: size.width * (isSmallScreen ? 0.06 : 0.04),
+                    fontSize: context.responsiveFontSize(
+                      mobilePortrait: 0.06,
+                      mobileLandscape: 0.048,
+                      tabletPortrait: 0.05,
+                      tabletLandscape: 0.042,
+                      desktopPortrait: 0.04,
+                      desktopLandscape: 0.035,
+                    ),
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
-              SizedBox(width: size.width * 0.06),
+              SizedBox(
+                  width: context.responsiveSpacing(
+                mobilePortrait: 0.06,
+                mobileLandscape: 0.05,
+                tabletPortrait: 0.07,
+                tabletLandscape: 0.06,
+              )),
             ],
           ),
 
-          SizedBox(height: size.height * 0.04),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.04,
+            mobileLandscape: 0.02,
+            tabletPortrait: 0.045,
+            tabletLandscape: 0.025,
+          )),
 
-          // Main content card
-          Expanded(
+          // Main content card - Use Flexible instead of Expanded to prevent overflow
+          Flexible(
             child: Card(
               elevation: 8,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Padding(
-                padding: EdgeInsets.all(size.width * 0.06),
-                child: Column(
-                  children: [
-                    // Title and description
-                    Text(
-                      'Découvrez votre profil psychotechnique',
-                      style: TextStyle(
-                        fontSize: size.width * (isSmallScreen ? 0.05 : 0.035),
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF333333),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    SizedBox(height: size.height * 0.03),
-
-                    Container(
-                      width: size.width * 0.2,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                padding: context.responsivePadding(
+                  mobilePortrait: 0.06,
+                  mobileLandscape: 0.05,
+                  tabletPortrait: 0.07,
+                  tabletLandscape: 0.06,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Title and description
+                      Text(
+                        'Découvrez votre profil psychotechnique',
+                        style: TextStyle(
+                          fontSize: context.responsiveFontSize(
+                            mobilePortrait: 0.05,
+                            mobileLandscape: 0.04,
+                            tabletPortrait: 0.045,
+                            tabletLandscape: 0.038,
+                            desktopPortrait: 0.035,
+                            desktopLandscape: 0.03,
+                          ),
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF333333),
                         ),
-                        borderRadius: BorderRadius.circular(3),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
 
-                    SizedBox(height: size.height * 0.03),
+                      SizedBox(
+                          height: context.responsiveSpacing(
+                        mobilePortrait: 0.03,
+                        mobileLandscape: 0.02,
+                        tabletPortrait: 0.035,
+                        tabletLandscape: 0.025,
+                      )),
 
-                    Text(
-                      'Ce test vous permettra de découvrir votre type de personnalité parmi 8 profils distincts. Répondez honnêtement aux ${_questions.length} questions${_questions.isNotEmpty ? ' chargées depuis Firebase' : ''} pour obtenir un résultat précis.',
-                      style: TextStyle(
-                        fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
-                        color: Colors.grey[600],
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    SizedBox(height: size.height * 0.04),
-
-                    // User info
-                    if (_currentUser != null) ...[
                       Container(
-                        padding: EdgeInsets.all(size.width * 0.04),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(15),
+                        width: context.responsiveWidth(
+                          mobilePortrait: 0.2,
+                          mobileLandscape: 0.18,
+                          tabletPortrait: 0.18,
+                          tabletLandscape: 0.15,
+                          desktopPortrait: 0.15,
+                          desktopLandscape: 0.12,
                         ),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Informations du test',
-                              style: TextStyle(
-                                fontSize:
-                                    size.width * (isSmallScreen ? 0.04 : 0.03),
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF333333),
-                              ),
-                            ),
-                            SizedBox(height: size.height * 0.02),
-                            Text(
-                              'Nom: ${_currentUser!.displayName ?? 'Non défini'}',
-                              style: TextStyle(
-                                fontSize: size.width *
-                                    (isSmallScreen ? 0.035 : 0.025),
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                            SizedBox(height: size.height * 0.01),
-                            Text(
-                              'Email: ${_currentUser!.email ?? 'Non défini'}',
-                              style: TextStyle(
-                                fontSize: size.width *
-                                    (isSmallScreen ? 0.035 : 0.025),
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                            SizedBox(height: size.height * 0.01),
-                            Text(
-                              'Les résultats seront sauvegardés dans votre profil',
-                              style: TextStyle(
-                                fontSize:
-                                    size.width * (isSmallScreen ? 0.03 : 0.02),
-                                color: Colors.grey[500],
-                                fontStyle: FontStyle.italic,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8A4FFF), Color(0xFF8A4FFF)],
+                          ),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                       ),
-                      SizedBox(height: size.height * 0.04),
-                    ],
 
-                    const Spacer(),
+                      SizedBox(
+                          height: context.responsiveSpacing(
+                        mobilePortrait: 0.03,
+                        mobileLandscape: 0.02,
+                        tabletPortrait: 0.035,
+                        tabletLandscape: 0.025,
+                      )),
 
-                    // Action buttons
-                    Column(
-                      children: [
+                      Text(
+                        'Ce test vous permettra de découvrir votre type de personnalité parmi 8 profils distincts. Répondez honnêtement aux ${_questions.length} questions${_questions.isNotEmpty ? ' chargées depuis Firebase' : ''} pour obtenir un résultat précis.',
+                        style: TextStyle(
+                          fontSize: context.responsiveFontSize(
+                            mobilePortrait: 0.04,
+                            mobileLandscape: 0.032,
+                            tabletPortrait: 0.035,
+                            tabletLandscape: 0.03,
+                            desktopPortrait: 0.03,
+                            desktopLandscape: 0.025,
+                          ),
+                          color: Colors.grey[600],
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      SizedBox(
+                          height: context.responsiveSpacing(
+                        mobilePortrait: 0.04,
+                        mobileLandscape: 0.02,
+                        tabletPortrait: 0.045,
+                        tabletLandscape: 0.025,
+                      )),
+
+                      // User info
+                      if (_currentUser != null) ...[
+                        Container(
+                          padding: context.responsivePadding(
+                            mobilePortrait: 0.04,
+                            mobileLandscape: 0.035,
+                            tabletPortrait: 0.045,
+                            tabletLandscape: 0.04,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Informations du test',
+                                style: TextStyle(
+                                  fontSize: context.responsiveFontSize(
+                                    mobilePortrait: 0.04,
+                                    mobileLandscape: 0.032,
+                                    tabletPortrait: 0.035,
+                                    tabletLandscape: 0.03,
+                                    desktopPortrait: 0.03,
+                                    desktopLandscape: 0.025,
+                                  ),
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF333333),
+                                ),
+                              ),
+                              SizedBox(
+                                  height: context.responsiveSpacing(
+                                mobilePortrait: 0.02,
+                                mobileLandscape: 0.01,
+                                tabletPortrait: 0.025,
+                                tabletLandscape: 0.015,
+                              )),
+                              Text(
+                                'Nom: ${_currentUser!.displayName ?? 'Non défini'}',
+                                style: TextStyle(
+                                  fontSize: context.responsiveFontSize(
+                                    mobilePortrait: 0.035,
+                                    mobileLandscape: 0.028,
+                                    tabletPortrait: 0.03,
+                                    tabletLandscape: 0.025,
+                                    desktopPortrait: 0.025,
+                                    desktopLandscape: 0.02,
+                                  ),
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              SizedBox(
+                                  height: context.responsiveSpacing(
+                                mobilePortrait: 0.01,
+                                mobileLandscape: 0.005,
+                                tabletPortrait: 0.012,
+                                tabletLandscape: 0.008,
+                              )),
+                              Text(
+                                'Email: ${_currentUser!.email ?? 'Non défini'}',
+                                style: TextStyle(
+                                  fontSize: context.responsiveFontSize(
+                                    mobilePortrait: 0.035,
+                                    mobileLandscape: 0.028,
+                                    tabletPortrait: 0.03,
+                                    tabletLandscape: 0.025,
+                                    desktopPortrait: 0.025,
+                                    desktopLandscape: 0.02,
+                                  ),
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              SizedBox(
+                                  height: context.responsiveSpacing(
+                                mobilePortrait: 0.01,
+                                mobileLandscape: 0.005,
+                                tabletPortrait: 0.012,
+                                tabletLandscape: 0.008,
+                              )),
+                              Text(
+                                'Les résultats seront sauvegardés dans votre profil',
+                                style: TextStyle(
+                                  fontSize: context.responsiveFontSize(
+                                    mobilePortrait: 0.03,
+                                    mobileLandscape: 0.025,
+                                    tabletPortrait: 0.028,
+                                    tabletLandscape: 0.022,
+                                    desktopPortrait: 0.02,
+                                    desktopLandscape: 0.018,
+                                  ),
+                                  color: Colors.grey[500],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                         SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _startTest,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                              padding: EdgeInsets.symmetric(
-                                vertical: size.height * 0.02,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Commencer le Test',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: size.width *
-                                        (isSmallScreen ? 0.04 : 0.03),
-                                    fontWeight: FontWeight.w600,
+                            height: context.responsiveSpacing(
+                          mobilePortrait: 0.04,
+                          mobileLandscape: 0.02,
+                          tabletPortrait: 0.045,
+                          tabletLandscape: 0.025,
+                        )),
+                      ],
+
+                      // Add responsive spacing instead of Spacer
+                      SizedBox(
+                          height: context.responsiveSpacing(
+                        mobilePortrait: 0.04,
+                        mobileLandscape: 0.02,
+                        tabletPortrait: 0.045,
+                        tabletLandscape: 0.025,
+                      )),
+
+                      // Action buttons
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _startTest,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF8A4FFF),
+                                padding: EdgeInsets.symmetric(
+                                  vertical: context.responsiveSpacing(
+                                    mobilePortrait: 0.02,
+                                    mobileLandscape: 0.015,
+                                    tabletPortrait: 0.025,
+                                    tabletLandscape: 0.018,
                                   ),
                                 ),
-                                SizedBox(width: size.width * 0.02),
-                                Icon(
-                                  Icons.arrow_forward,
-                                  color: Colors.white,
-                                  size: size.width *
-                                      (isSmallScreen ? 0.05 : 0.04),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: size.height * 0.02),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'Retour à l\'accueil',
-                              style: TextStyle(
-                                color: const Color(0xFF4CAF50),
-                                fontSize: size.width *
-                                    (isSmallScreen ? 0.035 : 0.025),
-                                fontWeight: FontWeight.w500,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Commencer le Test',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: context.responsiveFontSize(
+                                        mobilePortrait: 0.04,
+                                        mobileLandscape: 0.032,
+                                        tabletPortrait: 0.035,
+                                        tabletLandscape: 0.03,
+                                        desktopPortrait: 0.03,
+                                        desktopLandscape: 0.025,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                      width: context.responsiveSpacing(
+                                    mobilePortrait: 0.02,
+                                    mobileLandscape: 0.015,
+                                    tabletPortrait: 0.025,
+                                    tabletLandscape: 0.018,
+                                  )),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.white,
+                                    size: context.responsiveFontSize(
+                                      mobilePortrait: 0.05,
+                                      mobileLandscape: 0.04,
+                                      tabletPortrait: 0.045,
+                                      tabletLandscape: 0.038,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          SizedBox(
+                              height: context.responsiveSpacing(
+                            mobilePortrait: 0.02,
+                            mobileLandscape: 0.01,
+                            tabletPortrait: 0.025,
+                            tabletLandscape: 0.015,
+                          )),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                'Retour à l\'accueil',
+                                style: TextStyle(
+                                  color: const Color(0xFF8A4FFF),
+                                  fontSize: context.responsiveFontSize(
+                                    mobilePortrait: 0.035,
+                                    mobileLandscape: 0.028,
+                                    tabletPortrait: 0.03,
+                                    tabletLandscape: 0.025,
+                                    desktopPortrait: 0.025,
+                                    desktopLandscape: 0.02,
+                                  ),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

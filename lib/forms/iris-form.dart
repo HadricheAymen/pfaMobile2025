@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/responsive_utils.dart';
 
 class IrisForm extends StatefulWidget {
   const IrisForm({Key? key}) : super(key: key);
@@ -21,6 +23,26 @@ class _IrisFormState extends State<IrisForm> {
   final TextEditingController _ageController = TextEditingController();
   String _selectedGender = '';
   final TextEditingController _commentsController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthentication();
+  }
+
+  Future<void> _checkAuthentication() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      // Delay navigation to avoid build errors
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(context, '/signup');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('Veuillez vous connecter pour analyser votre iris')),
+        );
+      });
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -42,14 +64,14 @@ class _IrisFormState extends State<IrisForm> {
     //   _isAnalyzing = true;
     // });
 
-    // // Simulate AI analysis with delay (replace with actual API call)
+    // Simulate AI analysis with delay (replace with actual API call)
     // await Future.delayed(const Duration(seconds: 3));
 
-    // // Generate random results for demonstration
+    // Generate random results for demonstration
     // final types = ['Fleur', 'Bijou', 'Flux', 'Shaker'];
     // final routes = ['fleur', 'bijou', 'flux', 'shaker'];
 
-    // // Generate random percentages that total 100%
+    // Generate random percentages that total 100%
     // final random = DateTime.now().millisecondsSinceEpoch;
     // final fleur = random % 100;
     // final bijou = random % (100 - fleur);
@@ -75,9 +97,6 @@ class _IrisFormState extends State<IrisForm> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 600;
-
     return Scaffold(
       body: SingleChildScrollView(
         child: Container(
@@ -92,19 +111,48 @@ class _IrisFormState extends State<IrisForm> {
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(size.width * 0.05),
+            padding: context.responsivePadding(
+              mobilePortrait: 0.05,
+              mobileLandscape: 0.04,
+              tabletPortrait: 0.06,
+              tabletLandscape: 0.05,
+            ),
             child: Column(
               children: [
-                _buildHeader(size, isSmallScreen),
-                SizedBox(height: size.height * 0.03),
-                _buildImageUploadSection(size),
-                SizedBox(height: size.height * 0.03),
-                _buildForm(size, isSmallScreen),
-                SizedBox(height: size.height * 0.03),
-                _buildAnalyzeButton(size, isSmallScreen),
+                _buildHeader(context),
+                SizedBox(
+                    height: context.responsiveSpacing(
+                  mobilePortrait: 0.03,
+                  mobileLandscape: 0.02,
+                  tabletPortrait: 0.04,
+                  tabletLandscape: 0.025,
+                )),
+                _buildImageSection(context),
+                SizedBox(
+                    height: context.responsiveSpacing(
+                  mobilePortrait: 0.03,
+                  mobileLandscape: 0.02,
+                  tabletPortrait: 0.04,
+                  tabletLandscape: 0.025,
+                )),
+                _buildForm(context),
+                SizedBox(
+                    height: context.responsiveSpacing(
+                  mobilePortrait: 0.03,
+                  mobileLandscape: 0.02,
+                  tabletPortrait: 0.04,
+                  tabletLandscape: 0.025,
+                )),
+                _buildAnalyzeButton(context),
                 if (_analysisResult != null) ...[
-                  SizedBox(height: size.height * 0.03),
-                  _buildResults(size, isSmallScreen),
+                  SizedBox(
+                      height: context.responsiveSpacing(
+                    mobilePortrait: 0.03,
+                    mobileLandscape: 0.02,
+                    tabletPortrait: 0.04,
+                    tabletLandscape: 0.025,
+                  )),
+                  _buildResults(context),
                 ],
               ],
             ),
@@ -114,28 +162,62 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildHeader(Size size, bool isSmallScreen) {
+  Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
         Text(
           'Analysez votre iris',
           style: TextStyle(
-            fontSize: size.width * (isSmallScreen ? 0.07 : 0.045),
+            fontSize: context.responsiveFontSize(
+              mobilePortrait: 0.07,
+              mobileLandscape: 0.055,
+              tabletPortrait: 0.05,
+              tabletLandscape: 0.04,
+              desktopPortrait: 0.035,
+              desktopLandscape: 0.03,
+            ),
             fontWeight: FontWeight.bold,
             fontFamily: 'Playfair Display',
           ),
         ),
-        SizedBox(height: size.height * 0.01),
+        SizedBox(
+            height: context.responsiveSpacing(
+          mobilePortrait: 0.01,
+          mobileLandscape: 0.005,
+          tabletPortrait: 0.015,
+          tabletLandscape: 0.008,
+        )),
         Text(
           'Découvrez votre type d\'iris grâce à notre IA',
           style: TextStyle(
-            fontSize: size.width * (isSmallScreen ? 0.045 : 0.03),
+            fontSize: context.responsiveFontSize(
+              mobilePortrait: 0.045,
+              mobileLandscape: 0.035,
+              tabletPortrait: 0.035,
+              tabletLandscape: 0.028,
+              desktopPortrait: 0.025,
+              desktopLandscape: 0.02,
+            ),
             color: Colors.grey[600],
           ),
         ),
         Container(
-          margin: EdgeInsets.symmetric(vertical: size.height * 0.02),
-          width: size.width * (isSmallScreen ? 0.18 : 0.12),
+          margin: EdgeInsets.symmetric(
+            vertical: context.responsiveSpacing(
+              mobilePortrait: 0.02,
+              mobileLandscape: 0.01,
+              tabletPortrait: 0.025,
+              tabletLandscape: 0.015,
+            ),
+          ),
+          width: context.responsiveWidth(
+            mobilePortrait: 0.18,
+            mobileLandscape: 0.15,
+            tabletPortrait: 0.15,
+            tabletLandscape: 0.12,
+            desktopPortrait: 0.12,
+            desktopLandscape: 0.1,
+          ),
           height: 3,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -148,25 +230,83 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildImageUploadSection(Size size) {
+  Widget _buildImageSection(BuildContext context) {
     return Container(
-      height: size.height * 0.3,
+      height: context.responsiveHeight(
+        mobilePortrait: 0.3,
+        mobileLandscape: 0.4, // Increased from 0.25 to 0.4 for landscape
+        tabletPortrait: 0.35,
+        tabletLandscape: 0.45, // Increased from 0.28 to 0.45 for landscape
+        desktopPortrait: 0.4,
+        desktopLandscape: 0.5, // Increased from 0.3 to 0.5 for landscape
+      ),
+      width: double.infinity,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        color: Colors.grey[200],
         borderRadius: BorderRadius.circular(15),
       ),
       child: _image != null
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: Image.file(_image!, fit: BoxFit.cover),
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.file(_image!, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white.withValues(alpha: 0.7),
+                    child: IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.black),
+                      onPressed: () => _showImageSourceOptions(),
+                    ),
+                  ),
+                ),
+              ],
             )
           : Column(
+              mainAxisSize: MainAxisSize.min, // Add this to minimize vertical space
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.camera_alt, size: 48, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                const Text('Prenez une photo de votre iris'),
-                const SizedBox(height: 16),
+                Icon(
+                  Icons.camera_alt,
+                  size: context.responsiveFontSize(
+                    mobilePortrait: 0.12,
+                    mobileLandscape: 0.07, // Reduce icon size in landscape
+                    tabletPortrait: 0.1,
+                    tabletLandscape: 0.06, // Reduce icon size in landscape
+                    desktopPortrait: 0.08,
+                    desktopLandscape: 0.05,
+                  ),
+                  color: Colors.grey[400],
+                ),
+                SizedBox(
+                    height: context.responsiveSpacing(
+                  mobilePortrait: 0.02,
+                  mobileLandscape: 0.005, // Reduce spacing in landscape
+                  tabletPortrait: 0.025,
+                  tabletLandscape: 0.01, // Reduce spacing in landscape
+                )),
+                Text(
+                  'Prenez une photo de votre iris',
+                  style: TextStyle(
+                    fontSize: context.responsiveFontSize(
+                      mobilePortrait: 0.04,
+                      mobileLandscape: 0.028, // Smaller font in landscape
+                      tabletPortrait: 0.035,
+                      tabletLandscape: 0.025, // Smaller font in landscape
+                    ),
+                  ),
+                ),
+                SizedBox(
+                    height: context.responsiveSpacing(
+                  mobilePortrait: 0.02,
+                  mobileLandscape: 0.01,
+                  tabletPortrait: 0.025,
+                  tabletLandscape: 0.015,
+                )),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -188,7 +328,37 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildForm(Size size, bool isSmallScreen) {
+  void _showImageSourceOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Prendre une nouvelle photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choisir depuis la galerie'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
     return Form(
       key: _formKey,
       child: Column(
@@ -199,60 +369,151 @@ class _IrisFormState extends State<IrisForm> {
               labelText: 'Nom',
               border: const OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
-                vertical: size.height * 0.018,
-                horizontal: size.width * 0.04,
+                vertical: context.responsiveSpacing(
+                  mobilePortrait: 0.018,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.02,
+                  tabletLandscape: 0.016,
+                ),
+                horizontal: context.responsiveSpacing(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.035,
+                  tabletPortrait: 0.045,
+                  tabletLandscape: 0.038,
+                ),
               ),
             ),
             style: TextStyle(
-                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.045,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.028,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
+            ),
           ),
-          SizedBox(height: size.height * 0.018),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.018,
+            mobileLandscape: 0.015,
+            tabletPortrait: 0.02,
+            tabletLandscape: 0.016,
+          )),
           TextFormField(
             controller: _emailController,
             decoration: InputDecoration(
               labelText: 'Email',
               border: const OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
-                vertical: size.height * 0.018,
-                horizontal: size.width * 0.04,
+                vertical: context.responsiveSpacing(
+                  mobilePortrait: 0.018,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.02,
+                  tabletLandscape: 0.016,
+                ),
+                horizontal: context.responsiveSpacing(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.035,
+                  tabletPortrait: 0.045,
+                  tabletLandscape: 0.038,
+                ),
               ),
             ),
             style: TextStyle(
-                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.045,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.028,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
+            ),
           ),
-          SizedBox(height: size.height * 0.018),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.018,
+            mobileLandscape: 0.015,
+            tabletPortrait: 0.02,
+            tabletLandscape: 0.016,
+          )),
           TextFormField(
             controller: _ageController,
             decoration: InputDecoration(
               labelText: 'Âge',
               border: const OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
-                vertical: size.height * 0.018,
-                horizontal: size.width * 0.04,
+                vertical: context.responsiveSpacing(
+                  mobilePortrait: 0.018,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.02,
+                  tabletLandscape: 0.016,
+                ),
+                horizontal: context.responsiveSpacing(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.035,
+                  tabletPortrait: 0.045,
+                  tabletLandscape: 0.038,
+                ),
               ),
             ),
             keyboardType: TextInputType.number,
             style: TextStyle(
-                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.045,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.028,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
+            ),
           ),
-          SizedBox(height: size.height * 0.018),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.018,
+            mobileLandscape: 0.015,
+            tabletPortrait: 0.02,
+            tabletLandscape: 0.016,
+          )),
           DropdownButtonFormField<String>(
             value: _selectedGender.isEmpty ? null : _selectedGender,
             decoration: InputDecoration(
               labelText: 'Genre',
               border: const OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
-                vertical: size.height * 0.018,
-                horizontal: size.width * 0.04,
+                vertical: context.responsiveSpacing(
+                  mobilePortrait: 0.018,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.02,
+                  tabletLandscape: 0.016,
+                ),
+                horizontal: context.responsiveSpacing(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.035,
+                  tabletPortrait: 0.045,
+                  tabletLandscape: 0.038,
+                ),
               ),
             ),
             items: ['Homme', 'Femme', 'Autre']
                 .map((gender) => DropdownMenuItem(
                       value: gender,
-                      child: Text(gender,
-                          style: TextStyle(
-                              fontSize:
-                                  size.width * (isSmallScreen ? 0.045 : 0.03))),
+                      child: Text(
+                        gender,
+                        style: TextStyle(
+                          fontSize: context.responsiveFontSize(
+                            mobilePortrait: 0.045,
+                            mobileLandscape: 0.035,
+                            tabletPortrait: 0.035,
+                            tabletLandscape: 0.028,
+                            desktopPortrait: 0.03,
+                            desktopLandscape: 0.025,
+                          ),
+                        ),
+                      ),
                     ))
                 .toList(),
             onChanged: (value) {
@@ -261,35 +522,76 @@ class _IrisFormState extends State<IrisForm> {
               });
             },
           ),
-          SizedBox(height: size.height * 0.018),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.018,
+            mobileLandscape: 0.015,
+            tabletPortrait: 0.02,
+            tabletLandscape: 0.016,
+          )),
           TextFormField(
             controller: _commentsController,
             decoration: InputDecoration(
               labelText: 'Commentaires',
               border: const OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
-                vertical: size.height * 0.018,
-                horizontal: size.width * 0.04,
+                vertical: context.responsiveSpacing(
+                  mobilePortrait: 0.018,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.02,
+                  tabletLandscape: 0.016,
+                ),
+                horizontal: context.responsiveSpacing(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.035,
+                  tabletPortrait: 0.045,
+                  tabletLandscape: 0.038,
+                ),
               ),
             ),
             maxLines: 3,
             style: TextStyle(
-                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.045,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.028,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAnalyzeButton(Size size, bool isSmallScreen) {
+  Widget _buildAnalyzeButton(BuildContext context) {
     return SizedBox(
-      width: size.width * (isSmallScreen ? 0.8 : 0.4),
+      width: context.responsiveWidth(
+        mobilePortrait: 0.8,
+        mobileLandscape: 0.6,
+        tabletPortrait: 0.6,
+        tabletLandscape: 0.5,
+        desktopPortrait: 0.4,
+        desktopLandscape: 0.35,
+      ),
       child: ElevatedButton(
         onPressed: _image == null || _isAnalyzing ? null : _analyzeIris,
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.symmetric(
-            horizontal: size.width * 0.08,
-            vertical: size.height * 0.02,
+            horizontal: context.responsiveSpacing(
+              mobilePortrait: 0.08,
+              mobileLandscape: 0.06,
+              tabletPortrait: 0.1,
+              tabletLandscape: 0.08,
+            ),
+            vertical: context.responsiveSpacing(
+              mobilePortrait: 0.02,
+              mobileLandscape: 0.015,
+              tabletPortrait: 0.025,
+              tabletLandscape: 0.018,
+            ),
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
@@ -300,36 +602,78 @@ class _IrisFormState extends State<IrisForm> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    width: size.width * 0.05,
-                    height: size.width * 0.05,
+                    width: context.responsiveFontSize(
+                      mobilePortrait: 0.05,
+                      mobileLandscape: 0.04,
+                      tabletPortrait: 0.04,
+                      tabletLandscape: 0.035,
+                    ),
+                    height: context.responsiveFontSize(
+                      mobilePortrait: 0.05,
+                      mobileLandscape: 0.04,
+                      tabletPortrait: 0.04,
+                      tabletLandscape: 0.035,
+                    ),
                     child: const CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   ),
-                  SizedBox(width: size.width * 0.02),
-                  Text('Analyse en cours...',
-                      style: TextStyle(
-                          fontSize:
-                              size.width * (isSmallScreen ? 0.045 : 0.03))),
+                  SizedBox(
+                      width: context.responsiveSpacing(
+                    mobilePortrait: 0.02,
+                    mobileLandscape: 0.015,
+                    tabletPortrait: 0.025,
+                    tabletLandscape: 0.018,
+                  )),
+                  Text(
+                    'Analyse en cours...',
+                    style: TextStyle(
+                      fontSize: context.responsiveFontSize(
+                        mobilePortrait: 0.045,
+                        mobileLandscape: 0.035,
+                        tabletPortrait: 0.035,
+                        tabletLandscape: 0.03,
+                        desktopPortrait: 0.03,
+                        desktopLandscape: 0.025,
+                      ),
+                    ),
+                  ),
                 ],
               )
-            : Text('Analyser mon iris',
+            : Text(
+                'Analyser mon iris',
                 style: TextStyle(
-                    fontSize: size.width * (isSmallScreen ? 0.05 : 0.035))),
+                  fontSize: context.responsiveFontSize(
+                    mobilePortrait: 0.05,
+                    mobileLandscape: 0.04,
+                    tabletPortrait: 0.04,
+                    tabletLandscape: 0.035,
+                    desktopPortrait: 0.035,
+                    desktopLandscape: 0.03,
+                  ),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildResults(Size size, bool isSmallScreen) {
+  Widget _buildResults(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(size.width * 0.04),
+      padding: context.responsivePadding(
+        mobilePortrait: 0.04,
+        mobileLandscape: 0.035,
+        tabletPortrait: 0.045,
+        tabletLandscape: 0.04,
+        desktopPortrait: 0.05,
+        desktopLandscape: 0.045,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -341,7 +685,14 @@ class _IrisFormState extends State<IrisForm> {
           Text(
             'Résultat de l\'analyse',
             style: TextStyle(
-              fontSize: size.width * (isSmallScreen ? 0.06 : 0.04),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.06,
+                mobileLandscape: 0.048,
+                tabletPortrait: 0.05,
+                tabletLandscape: 0.042,
+                desktopPortrait: 0.04,
+                desktopLandscape: 0.035,
+              ),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -349,48 +700,97 @@ class _IrisFormState extends State<IrisForm> {
           Text(
             'Votre type d\'iris principal :',
             style: TextStyle(
-                fontSize: size.width * (isSmallScreen ? 0.045 : 0.03)),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.045,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.03,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
+            ),
           ),
           Text(
             _analysisResult!['primaryType'],
             style: TextStyle(
-              fontSize: size.width * (isSmallScreen ? 0.08 : 0.055),
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.08,
+                mobileLandscape: 0.065,
+                tabletPortrait: 0.065,
+                tabletLandscape: 0.055,
+                desktopPortrait: 0.055,
+                desktopLandscape: 0.045,
+              ),
               fontWeight: FontWeight.bold,
               color: Theme.of(context).primaryColor,
             ),
           ),
-          SizedBox(height: size.height * 0.02),
-          _buildPercentageBar('Fleur', _analysisResult!['fleurPercentage'],
-              size, isSmallScreen),
-          _buildPercentageBar('Bijou', _analysisResult!['bijouPercentage'],
-              size, isSmallScreen),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.02,
+            mobileLandscape: 0.015,
+            tabletPortrait: 0.025,
+            tabletLandscape: 0.018,
+          )),
           _buildPercentageBar(
-              'Flux', _analysisResult!['fluxPercentage'], size, isSmallScreen),
-          _buildPercentageBar('Shaker', _analysisResult!['shakerPercentage'],
-              size, isSmallScreen),
+              context, 'Fleur', _analysisResult!['fleurPercentage']),
+          _buildPercentageBar(
+              context, 'Bijou', _analysisResult!['bijouPercentage']),
+          _buildPercentageBar(
+              context, 'Flux', _analysisResult!['fluxPercentage']),
+          _buildPercentageBar(
+              context, 'Shaker', _analysisResult!['shakerPercentage']),
         ],
       ),
     );
   }
 
   Widget _buildPercentageBar(
-      String label, int percentage, Size size, bool isSmallScreen) {
+      BuildContext context, String label, int percentage) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
+      padding: EdgeInsets.symmetric(
+        vertical: context.responsiveSpacing(
+          mobilePortrait: 0.01,
+          mobileLandscape: 0.008,
+          tabletPortrait: 0.012,
+          tabletLandscape: 0.01,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$label: $percentage%',
-              style: TextStyle(
-                  fontSize: size.width * (isSmallScreen ? 0.045 : 0.03))),
-          SizedBox(height: size.height * 0.004),
+          Text(
+            '$label: $percentage%',
+            style: TextStyle(
+              fontSize: context.responsiveFontSize(
+                mobilePortrait: 0.045,
+                mobileLandscape: 0.035,
+                tabletPortrait: 0.035,
+                tabletLandscape: 0.03,
+                desktopPortrait: 0.03,
+                desktopLandscape: 0.025,
+              ),
+            ),
+          ),
+          SizedBox(
+              height: context.responsiveSpacing(
+            mobilePortrait: 0.004,
+            mobileLandscape: 0.003,
+            tabletPortrait: 0.005,
+            tabletLandscape: 0.004,
+          )),
           LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey[200],
             valueColor: AlwaysStoppedAnimation<Color>(
               _getColorForType(label),
             ),
-            minHeight: size.height * 0.012,
+            minHeight: context.responsiveSpacing(
+              mobilePortrait: 0.012,
+              mobileLandscape: 0.01,
+              tabletPortrait: 0.014,
+              tabletLandscape: 0.012,
+            ),
           ),
         ],
       ),
@@ -421,3 +821,5 @@ class _IrisFormState extends State<IrisForm> {
     super.dispose();
   }
 }
+
+
