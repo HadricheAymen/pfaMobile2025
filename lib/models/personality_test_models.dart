@@ -14,15 +14,16 @@ enum PersonalityClass {
 class Question {
   final int id;
   final String question;
-  final bool expectedAnswer;
-  final List<PersonalityClass> classes;
+  final List<String> options; // 4 response options
+  final Map<int, PersonalityClass>
+      optionMapping; // Maps option index to personality class
   final int weight;
 
   Question({
     required this.id,
     required this.question,
-    required this.expectedAnswer,
-    required this.classes,
+    required this.options,
+    required this.optionMapping,
     this.weight = 1,
   });
 
@@ -30,21 +31,29 @@ class Question {
     return {
       'id': id,
       'question': question,
-      'expectedAnswer': expectedAnswer,
-      'classes': classes.map((c) => c.toString().split('.').last).toList(),
+      'options': options,
+      'optionMapping': optionMapping.map((key, value) =>
+          MapEntry(key.toString(), value.toString().split('.').last)),
       'weight': weight,
     };
   }
 
   factory Question.fromJson(Map<String, dynamic> json) {
+    final optionMappingJson = json['optionMapping'] as Map<String, dynamic>;
+    final optionMapping = <int, PersonalityClass>{};
+
+    optionMappingJson.forEach((key, value) {
+      final index = int.parse(key);
+      final personalityClass = PersonalityClass.values
+          .firstWhere((e) => e.toString().split('.').last == value);
+      optionMapping[index] = personalityClass;
+    });
+
     return Question(
       id: json['id'],
       question: json['question'],
-      expectedAnswer: json['expectedAnswer'],
-      classes: (json['classes'] as List)
-          .map((c) => PersonalityClass.values
-              .firstWhere((e) => e.toString().split('.').last == c))
-          .toList(),
+      options: List<String>.from(json['options']),
+      optionMapping: optionMapping,
       weight: json['weight'] ?? 1,
     );
   }
@@ -52,19 +61,23 @@ class Question {
 
 class UserResponse {
   final int questionId;
-  final bool answer;
+  final int selectedOptionIndex; // Index of the selected option (0-3)
+  final PersonalityClass
+      selectedClass; // The personality class corresponding to the selected option
   final DateTime timestamp;
 
   UserResponse({
     required this.questionId,
-    required this.answer,
+    required this.selectedOptionIndex,
+    required this.selectedClass,
     required this.timestamp,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'questionId': questionId,
-      'answer': answer,
+      'selectedOptionIndex': selectedOptionIndex,
+      'selectedClass': selectedClass.toString().split('.').last,
       'timestamp': timestamp.toIso8601String(),
     };
   }
@@ -72,7 +85,9 @@ class UserResponse {
   factory UserResponse.fromJson(Map<String, dynamic> json) {
     return UserResponse(
       questionId: json['questionId'],
-      answer: json['answer'],
+      selectedOptionIndex: json['selectedOptionIndex'],
+      selectedClass: PersonalityClass.values.firstWhere(
+          (e) => e.toString().split('.').last == json['selectedClass']),
       timestamp: DateTime.parse(json['timestamp']),
     );
   }
@@ -156,8 +171,8 @@ class PersonalityProfile {
 
   factory PersonalityProfile.fromJson(Map<String, dynamic> json) {
     return PersonalityProfile(
-      primaryClass: PersonalityClass.values
-          .firstWhere((e) => e.toString().split('.').last == json['primaryClass']),
+      primaryClass: PersonalityClass.values.firstWhere(
+          (e) => e.toString().split('.').last == json['primaryClass']),
       secondaryClass: json['secondaryClass'] != null
           ? PersonalityClass.values.firstWhere(
               (e) => e.toString().split('.').last == json['secondaryClass'])

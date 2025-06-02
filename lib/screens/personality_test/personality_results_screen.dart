@@ -76,7 +76,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: [
                           Color(profileData['color'] as int),
-                          Color(profileData['color'] as int).withValues(alpha: 0.7),
+                          Color(profileData['color'] as int)
+                              .withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -107,7 +108,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                         Text(
                           profileData['name'] as String,
                           style: TextStyle(
-                            fontSize: size.width * (isSmallScreen ? 0.06 : 0.05),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.06 : 0.05),
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -128,7 +130,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                           child: Text(
                             'Fiabilité: ${profile.confidenceScore.toStringAsFixed(0)}%',
                             style: TextStyle(
-                              fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+                              fontSize:
+                                  size.width * (isSmallScreen ? 0.035 : 0.025),
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
@@ -155,7 +158,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                         Text(
                           'Description',
                           style: TextStyle(
-                            fontSize: size.width * (isSmallScreen ? 0.045 : 0.035),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.045 : 0.035),
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF333333),
                           ),
@@ -164,7 +168,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                         Text(
                           profile.description,
                           style: TextStyle(
-                            fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.04 : 0.03),
                             color: Colors.grey[700],
                             height: 1.5,
                           ),
@@ -190,7 +195,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                         Text(
                           'Caractéristiques principales',
                           style: TextStyle(
-                            fontSize: size.width * (isSmallScreen ? 0.045 : 0.035),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.045 : 0.035),
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF333333),
                           ),
@@ -199,23 +205,27 @@ class PersonalityResultsScreen extends StatelessWidget {
                         Wrap(
                           spacing: size.width * 0.02,
                           runSpacing: size.height * 0.01,
-                          children: profile.characteristics.map((characteristic) {
+                          children:
+                              profile.characteristics.map((characteristic) {
                             return Container(
                               padding: EdgeInsets.symmetric(
                                 horizontal: size.width * 0.03,
                                 vertical: size.height * 0.01,
                               ),
                               decoration: BoxDecoration(
-                                color: Color(profileData['color'] as int).withValues(alpha: 0.1),
+                                color: Color(profileData['color'] as int)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: Color(profileData['color'] as int).withValues(alpha: 0.3),
+                                  color: Color(profileData['color'] as int)
+                                      .withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Text(
                                 characteristic,
                                 style: TextStyle(
-                                  fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+                                  fontSize: size.width *
+                                      (isSmallScreen ? 0.035 : 0.025),
                                   color: Color(profileData['color'] as int),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -244,16 +254,21 @@ class PersonalityResultsScreen extends StatelessWidget {
                         Text(
                           'Répartition des scores',
                           style: TextStyle(
-                            fontSize: size.width * (isSmallScreen ? 0.045 : 0.035),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.045 : 0.035),
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF333333),
                           ),
                         ),
                         SizedBox(height: size.height * 0.02),
-                        _buildScoreBar('Flower', scores.flower, 8, const Color(0xFFE91E63), size, isSmallScreen),
-                        _buildScoreBar('Jewel', scores.jewel, 8, const Color(0xFF2196F3), size, isSmallScreen),
-                        _buildScoreBar('Shaker', scores.shaker, 8, const Color(0xFFFF9800), size, isSmallScreen),
-                        _buildScoreBar('Stream', scores.stream, 8, const Color(0xFF4CAF50), size, isSmallScreen),
+                        _buildScoreBar('Flower', scores.flower, 16,
+                            const Color(0xFFE91E63), size, isSmallScreen),
+                        _buildScoreBar('Jewel', scores.jewel, 16,
+                            const Color(0xFF2196F3), size, isSmallScreen),
+                        _buildScoreBar('Shaker', scores.shaker, 16,
+                            const Color(0xFFFF9800), size, isSmallScreen),
+                        _buildScoreBar('Stream', scores.stream, 16,
+                            const Color(0xFF4CAF50), size, isSmallScreen),
                       ],
                     ),
                   ),
@@ -285,15 +300,14 @@ class PersonalityResultsScreen extends StatelessWidget {
                           'Refaire le test',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: size.width * (isSmallScreen ? 0.04 : 0.03),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.04 : 0.03),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
-
                     SizedBox(height: size.height * 0.02),
-
                     SizedBox(
                       width: double.infinity,
                       child: TextButton(
@@ -306,7 +320,8 @@ class PersonalityResultsScreen extends StatelessWidget {
                           'Retour à l\'accueil',
                           style: TextStyle(
                             color: const Color(0xFF8A4FFF),
-                            fontSize: size.width * (isSmallScreen ? 0.035 : 0.025),
+                            fontSize:
+                                size.width * (isSmallScreen ? 0.035 : 0.025),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -324,9 +339,10 @@ class PersonalityResultsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildScoreBar(String label, double score, double maxScore, Color color, Size size, bool isSmallScreen) {
+  Widget _buildScoreBar(String label, double score, double maxScore,
+      Color color, Size size, bool isSmallScreen) {
     final percentage = (score / maxScore).clamp(0.0, 1.0);
-    
+
     return Padding(
       padding: EdgeInsets.only(bottom: size.height * 0.015),
       child: Column(

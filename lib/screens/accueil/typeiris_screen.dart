@@ -171,8 +171,46 @@ class TypeirisScreen extends StatelessWidget {
                             )
                           : Column(
                               children: [
-                                // Original column layout for portrait mode
-                                // Keep the existing code here for buttons
+                                // Add the buttons for portrait mode
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, '/iris2');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(double.infinity, size.height * 0.06),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Découvrir les types'),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: size.height * 0.02),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, '/iris-diversity');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(double.infinity, size.height * 0.06),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Diversité des iris'),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                     ],
@@ -251,5 +289,6 @@ class InfoCard extends StatelessWidget {
     );
   }
 }
+
 
 

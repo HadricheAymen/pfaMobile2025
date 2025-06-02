@@ -40,7 +40,7 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
     if (FirebaseAuth.instance.currentUser == null) {
       // Delay navigation to avoid build errors
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/signup');
+        Navigator.pushReplacementNamed(context, '/signin');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text(
@@ -120,13 +120,16 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
     }
   }
 
-  Future<void> _answerQuestion(bool answer) async {
+  Future<void> _answerQuestion(int optionIndex) async {
     if (_testSession == null) return;
 
     final currentQuestion = _questions[_currentQuestionIndex];
+    final selectedClass = currentQuestion.optionMapping[optionIndex]!;
+
     final response = UserResponse(
       questionId: currentQuestion.id,
-      answer: answer,
+      selectedOptionIndex: optionIndex,
+      selectedClass: selectedClass,
       timestamp: DateTime.now(),
     );
 
@@ -570,135 +573,77 @@ class _PersonalityTestScreenState extends State<PersonalityTestScreen> {
 
                     const Spacer(),
 
-                    // Answer buttons
+                    // Answer options
                     if (!_isLoading) ...[
-                      Row(
-                        children: [
-                          Expanded(
+                      ...currentQuestion.options.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final option = entry.value;
+                        final colors = [
+                          const Color(0xFF8A4FFF), // App violet
+                          const Color(0xFF8A4FFF), // App violet
+                          const Color(0xFF8A4FFF), // App violet
+                          const Color(0xFF8A4FFF), // App violet
+                        ];
+
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: context.responsiveSpacing(
+                              mobilePortrait: 0.02,
+                              mobileLandscape: 0.015,
+                              tabletPortrait: 0.025,
+                              tabletLandscape: 0.018,
+                            ),
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () => _answerQuestion(true),
+                              onPressed: () => _answerQuestion(index),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor:  const Color(0xFF8A4FFF),
+                                backgroundColor: colors[index],
                                 padding: EdgeInsets.symmetric(
                                   vertical: context.responsiveSpacing(
-                                    mobilePortrait: 0.025,
-                                    mobileLandscape: 0.02,
-                                    tabletPortrait: 0.03,
-                                    tabletLandscape: 0.025,
-                                  ),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: context.responsiveFontSize(
-                                      mobilePortrait: 0.06,
-                                      mobileLandscape: 0.05,
-                                      tabletPortrait: 0.055,
-                                      tabletLandscape: 0.048,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                      width: context.responsiveSpacing(
                                     mobilePortrait: 0.02,
                                     mobileLandscape: 0.015,
                                     tabletPortrait: 0.025,
                                     tabletLandscape: 0.018,
-                                  )),
-                                  Text(
-                                    'Oui',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: context.responsiveFontSize(
-                                        mobilePortrait: 0.045,
-                                        mobileLandscape: 0.035,
-                                        tabletPortrait: 0.04,
-                                        tabletLandscape: 0.033,
-                                        desktopPortrait: 0.035,
-                                        desktopLandscape: 0.03,
-                                      ),
-                                      fontWeight: FontWeight.w600,
-                                    ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                              width: context.responsiveSpacing(
-                            mobilePortrait: 0.04,
-                            mobileLandscape: 0.035,
-                            tabletPortrait: 0.045,
-                            tabletLandscape: 0.04,
-                          )),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _answerQuestion(false),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF5722),
-                                padding: EdgeInsets.symmetric(
-                                  vertical: context.responsiveSpacing(
-                                    mobilePortrait: 0.025,
-                                    mobileLandscape: 0.02,
-                                    tabletPortrait: 0.03,
-                                    tabletLandscape: 0.025,
+                                  horizontal: context.responsiveSpacing(
+                                    mobilePortrait: 0.04,
+                                    mobileLandscape: 0.035,
+                                    tabletPortrait: 0.045,
+                                    tabletLandscape: 0.04,
                                   ),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
+                                  borderRadius: BorderRadius.circular(15),
                                 ),
+                                elevation: 2,
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                    size: context.responsiveFontSize(
-                                      mobilePortrait: 0.06,
-                                      mobileLandscape: 0.05,
-                                      tabletPortrait: 0.055,
-                                      tabletLandscape: 0.048,
-                                    ),
+                              child: Text(
+                                option,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: context.responsiveFontSize(
+                                    mobilePortrait: 0.038,
+                                    mobileLandscape: 0.032,
+                                    tabletPortrait: 0.035,
+                                    tabletLandscape: 0.03,
+                                    desktopPortrait: 0.03,
+                                    desktopLandscape: 0.025,
                                   ),
-                                  SizedBox(
-                                      width: context.responsiveSpacing(
-                                    mobilePortrait: 0.02,
-                                    mobileLandscape: 0.015,
-                                    tabletPortrait: 0.025,
-                                    tabletLandscape: 0.018,
-                                  )),
-                                  Text(
-                                    'Non',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: context.responsiveFontSize(
-                                        mobilePortrait: 0.045,
-                                        mobileLandscape: 0.035,
-                                        tabletPortrait: 0.04,
-                                        tabletLandscape: 0.033,
-                                        desktopPortrait: 0.035,
-                                        desktopLandscape: 0.03,
-                                      ),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      }).toList(),
                     ] else ...[
                       const CircularProgressIndicator(
                         valueColor:
-                            AlwaysStoppedAnimation<Color>( Color(0xFF8A4FFF)),
+                            AlwaysStoppedAnimation<Color>(Color(0xFF8A4FFF)),
                       ),
                       SizedBox(
                           height: context.responsiveSpacing(

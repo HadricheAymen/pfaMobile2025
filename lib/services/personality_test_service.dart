@@ -36,53 +36,42 @@ class PersonalityTestService {
     double shakerStream = 0;
     double streamFlower = 0;
 
+    // Count responses for each personality class
     for (final response in responses) {
-      final question = questions.firstWhere(
-        (q) => q.id == response.questionId,
-        orElse: () =>
-            throw Exception('Question not found: ${response.questionId}'),
-      );
-
-      final isCorrectAnswer = response.answer == question.expectedAnswer;
-      if (!isCorrectAnswer) continue;
-
-      // Attribution des points selon les classes de la question
-      for (final className in question.classes) {
-        switch (className) {
-          case PersonalityClass.flower:
-            flower += 1;
-            break;
-          case PersonalityClass.jewel:
-            jewel += 1;
-            break;
-          case PersonalityClass.shaker:
-            shaker += 1;
-            break;
-          case PersonalityClass.stream:
-            stream += 1;
-            break;
-          case PersonalityClass.flowerJewel:
-            flowerJewel += 1;
-            // Contribue aussi aux classes de base
-            flower += 0.5;
-            jewel += 0.5;
-            break;
-          case PersonalityClass.jewelShaker:
-            jewelShaker += 1;
-            jewel += 0.5;
-            shaker += 0.5;
-            break;
-          case PersonalityClass.shakerStream:
-            shakerStream += 1;
-            shaker += 0.5;
-            stream += 0.5;
-            break;
-          case PersonalityClass.streamFlower:
-            streamFlower += 1;
-            stream += 0.5;
-            flower += 0.5;
-            break;
-        }
+      switch (response.selectedClass) {
+        case PersonalityClass.flower:
+          flower += 1;
+          break;
+        case PersonalityClass.jewel:
+          jewel += 1;
+          break;
+        case PersonalityClass.shaker:
+          shaker += 1;
+          break;
+        case PersonalityClass.stream:
+          stream += 1;
+          break;
+        case PersonalityClass.flowerJewel:
+          flowerJewel += 1;
+          // Contribue aussi aux classes de base
+          flower += 0.5;
+          jewel += 0.5;
+          break;
+        case PersonalityClass.jewelShaker:
+          jewelShaker += 1;
+          jewel += 0.5;
+          shaker += 0.5;
+          break;
+        case PersonalityClass.shakerStream:
+          shakerStream += 1;
+          shaker += 0.5;
+          stream += 0.5;
+          break;
+        case PersonalityClass.streamFlower:
+          streamFlower += 1;
+          stream += 0.5;
+          flower += 0.5;
+          break;
       }
     }
 
@@ -109,7 +98,8 @@ class PersonalityTestService {
     ];
 
     // Trier par score décroissant
-    baseScores.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
+    baseScores
+        .sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
 
     // Logique de détermination du profil
     PersonalityClass primaryClass;
@@ -121,26 +111,31 @@ class PersonalityTestService {
     final firstHighest = baseScores[0];
     final secondHighest = baseScores[1];
     final thirdHighest = baseScores.length > 2 ? baseScores[2] : null;
-  
+
     final firstScore = firstHighest['score'] as double;
     final secondScore = secondHighest['score'] as double;
-    final thirdScore = thirdHighest != null ? thirdHighest['score'] as double : 0.0;
-  
+    final thirdScore =
+        thirdHighest != null ? thirdHighest['score'] as double : 0.0;
+
     final firstClass = firstHighest['class'] as PersonalityClass;
     final secondClass = secondHighest['class'] as PersonalityClass;
-    final thirdClass = thirdHighest != null ? thirdHighest['class'] as PersonalityClass : null;
+    final thirdClass =
+        thirdHighest != null ? thirdHighest['class'] as PersonalityClass : null;
 
-    // Check if the top two scores are similar (difference <= 0.5)
-    final areTopTwoSimilar = (firstScore - secondScore).abs() <= 0.5 && secondScore > 0;
-  
+    // Check if the top two scores are similar (difference <= 1.0)
+    final areTopTwoSimilar =
+        (firstScore - secondScore).abs() <= 1.0 && secondScore > 0;
+
     // Check if the second and third scores are similar
-    final areSecondThirdSimilar = thirdScore > 0 && (secondScore - thirdScore).abs() <= 0.5;
+    final areSecondThirdSimilar =
+        thirdScore > 0 && (secondScore - thirdScore).abs() <= 1.0;
 
     // If top two scores are similar, try to find an intermediate class
     if (areTopTwoSimilar) {
       // Try to find an intermediate class for the top two scores
-      PersonalityClass? intermediateClass = _findIntermediateClass(firstClass, secondClass);
-      
+      PersonalityClass? intermediateClass =
+          _findIntermediateClass(firstClass, secondClass);
+
       if (intermediateClass != null) {
         // Found a valid intermediate class
         primaryClass = intermediateClass;
@@ -150,7 +145,7 @@ class PersonalityTestService {
         // If no intermediate class for top two, and second and third are similar,
         // try to find an intermediate class for second and third
         intermediateClass = _findIntermediateClass(secondClass, thirdClass!);
-        
+
         if (intermediateClass != null) {
           primaryClass = intermediateClass;
           isIntermediate = true;
@@ -158,34 +153,34 @@ class PersonalityTestService {
         } else {
           // No intermediate classes found, use the highest score
           primaryClass = firstClass;
-          
+
           // If second score is significant (at least 60% of first score)
           if (secondScore > 0 && (secondScore / firstScore) >= 0.6) {
             secondaryClass = secondClass;
           }
-          
+
           confidenceScore = (firstScore / 8) * 100;
         }
       } else {
         // No intermediate class for top two, and second and third are not similar
         // Use the highest score with the second as secondary if significant
         primaryClass = firstClass;
-        
+
         if (secondScore > 0 && (secondScore / firstScore) >= 0.6) {
           secondaryClass = secondClass;
         }
-        
+
         confidenceScore = (firstScore / 8) * 100;
       }
     } else {
       // Top two scores are not similar, use the highest score
       primaryClass = firstClass;
-      
+
       // If second score is significant (at least 60% of first score)
       if (secondScore > 0 && (secondScore / firstScore) >= 0.6) {
         secondaryClass = secondClass;
       }
-      
+
       confidenceScore = (firstScore / 8) * 100;
     }
 
@@ -203,22 +198,31 @@ class PersonalityTestService {
   }
 
   /// Helper method to find an intermediate class for two personality classes
-  PersonalityClass? _findIntermediateClass(PersonalityClass class1, PersonalityClass class2) {
+  PersonalityClass? _findIntermediateClass(
+      PersonalityClass class1, PersonalityClass class2) {
     // Check all possible combinations
-    if ((class1 == PersonalityClass.flower && class2 == PersonalityClass.jewel) ||
-        (class1 == PersonalityClass.jewel && class2 == PersonalityClass.flower)) {
+    if ((class1 == PersonalityClass.flower &&
+            class2 == PersonalityClass.jewel) ||
+        (class1 == PersonalityClass.jewel &&
+            class2 == PersonalityClass.flower)) {
       return PersonalityClass.flowerJewel;
-    } else if ((class1 == PersonalityClass.jewel && class2 == PersonalityClass.shaker) ||
-               (class1 == PersonalityClass.shaker && class2 == PersonalityClass.jewel)) {
+    } else if ((class1 == PersonalityClass.jewel &&
+            class2 == PersonalityClass.shaker) ||
+        (class1 == PersonalityClass.shaker &&
+            class2 == PersonalityClass.jewel)) {
       return PersonalityClass.jewelShaker;
-    } else if ((class1 == PersonalityClass.shaker && class2 == PersonalityClass.stream) ||
-               (class1 == PersonalityClass.stream && class2 == PersonalityClass.shaker)) {
+    } else if ((class1 == PersonalityClass.shaker &&
+            class2 == PersonalityClass.stream) ||
+        (class1 == PersonalityClass.stream &&
+            class2 == PersonalityClass.shaker)) {
       return PersonalityClass.shakerStream;
-    } else if ((class1 == PersonalityClass.stream && class2 == PersonalityClass.flower) ||
-               (class1 == PersonalityClass.flower && class2 == PersonalityClass.stream)) {
+    } else if ((class1 == PersonalityClass.stream &&
+            class2 == PersonalityClass.flower) ||
+        (class1 == PersonalityClass.flower &&
+            class2 == PersonalityClass.stream)) {
       return PersonalityClass.streamFlower;
     }
-  
+
     // No intermediate class found for this combination
     return null;
   }
@@ -334,15 +338,7 @@ class PersonalityTestService {
 
       return querySnapshot.docs.map((doc) {
         final data = doc.data();
-        return Question(
-          id: data['id'],
-          question: data['question'],
-          expectedAnswer: data['expectedAnswer'],
-          classes: (data['classes'] as List)
-              .map((className) => _parsePersonalityClass(className))
-              .toList(),
-          weight: data['weight'] ?? 1,
-        );
+        return Question.fromJson(data);
       }).toList();
     } catch (e) {
       print('Error getting questions from Firebase: $e');
@@ -401,15 +397,13 @@ class PersonalityTestService {
   /// Initialize questions in Firebase
   Future<void> _initializeQuestions() async {
     for (final question in personalityQuestions) {
-      await _firestore.collection('questions').doc(question.id.toString()).set({
-        'id': question.id,
-        'question': question.question,
-        'expectedAnswer': question.expectedAnswer,
-        'classes':
-            question.classes.map((c) => c.toString().split('.').last).toList(),
-        'weight': question.weight,
-        'createdAt': DateTime.now().toIso8601String(),
-      });
+      final questionData = question.toJson();
+      questionData['createdAt'] = DateTime.now().toIso8601String();
+
+      await _firestore
+          .collection('questions')
+          .doc(question.id.toString())
+          .set(questionData);
     }
   }
 
@@ -537,6 +531,3 @@ class PersonalityTestService {
     }
   }
 }
-
-
-
