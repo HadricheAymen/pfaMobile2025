@@ -90,8 +90,49 @@ class Iris2Screen extends StatelessWidget {
                       )
                     : Column(
                         children: [
-                          // Original column layout for portrait mode
-                          // Keep the existing code here
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Fleur',
+                            tagline: 'Le Sentimental',
+                            description:
+                                'Profil axé sur les émotions et la créativité. Expressif, spontané et artistique.',
+                            imagePath: 'assets/1.png',
+                            route: '/fleur',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                          SizedBox(height: size.height * 0.03),
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Bijou',
+                            tagline: 'Le Réfléchi',
+                            description:
+                                'Type analytique et mental. Observateur, précis et orienté vers la réflexion.',
+                            imagePath: 'assets/2.png',
+                            route: '/bijou',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                          SizedBox(height: size.height * 0.03),
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Flux',
+                            tagline: 'L\'Intuitif',
+                            description:
+                                'Profil sensible et intuitif. Empathique, adaptable et orienté vers les autres.',
+                            imagePath: 'assets/3.png',
+                            route: '/flux',
+                            color: const Color(0xFF4F8AFF),
+                          ),
+                          SizedBox(height: size.height * 0.03),
+                          _buildIrisCard(
+                            context: context,
+                            name: 'Shaker',
+                            tagline: 'Le Visionnaire',
+                            description:
+                                'Type motivé, expressif et orienté action. Énergique, innovant et inspirant.',
+                            imagePath: 'assets/4.png',
+                            route: '/shaker',
+                            color: const Color(0xFF4F8AFF),
+                          ),
                         ],
                       ),
                 SizedBox(height: size.height * 0.04),
@@ -283,4 +324,3 @@ class Iris2Screen extends StatelessWidget {
     );
   }
 }
-

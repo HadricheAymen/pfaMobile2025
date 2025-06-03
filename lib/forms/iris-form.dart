@@ -1361,9 +1361,6 @@ class _IrisFormState extends State<IrisForm> {
                   'Iris extraits',
                   style: TextStyle(
                     fontSize: context.responsiveFontSize(
-                      mobilePortrait: 0.045,
-                      mobileLandscape: 0.035,
-                      tabletPortrait: 0.04,
                       tabletLandscape: 0.033,
                     ),
                     fontWeight: FontWeight.w600,
@@ -1378,100 +1375,7 @@ class _IrisFormState extends State<IrisForm> {
                     tabletLandscape: 0.018,
                   ),
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Iris gauche',
-                            style: TextStyle(
-                              fontSize: context.responsiveFontSize(
-                                mobilePortrait: 0.035,
-                                mobileLandscape: 0.028,
-                                tabletPortrait: 0.03,
-                                tabletLandscape: 0.025,
-                              ),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              mobilePortrait: 0.01,
-                              mobileLandscape: 0.008,
-                              tabletPortrait: 0.012,
-                              tabletLandscape: 0.01,
-                            ),
-                          ),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Image.file(
-                              _leftIrisImage!,
-                              key: ValueKey(_leftIrisImage!
-                                  .path), // Force refresh when path changes
-                              height: context.responsiveHeight(
-                                mobilePortrait: 0.15,
-                                mobileLandscape: 0.2,
-                                tabletPortrait: 0.12,
-                                tabletLandscape: 0.17,
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: context.responsiveSpacing(
-                        mobilePortrait: 0.02,
-                        mobileLandscape: 0.015,
-                        tabletPortrait: 0.025,
-                        tabletLandscape: 0.018,
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Iris droit',
-                            style: TextStyle(
-                              fontSize: context.responsiveFontSize(
-                                mobilePortrait: 0.035,
-                                mobileLandscape: 0.028,
-                                tabletPortrait: 0.03,
-                                tabletLandscape: 0.025,
-                              ),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              mobilePortrait: 0.01,
-                              mobileLandscape: 0.008,
-                              tabletPortrait: 0.012,
-                              tabletLandscape: 0.01,
-                            ),
-                          ),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Image.file(
-                              _rightIrisImage!,
-                              key: ValueKey(_rightIrisImage!
-                                  .path), // Force refresh when path changes
-                              height: context.responsiveHeight(
-                                mobilePortrait: 0.15,
-                                mobileLandscape: 0.2,
-                                tabletPortrait: 0.12,
-                                tabletLandscape: 0.17,
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                // Do not show Row with images
               ],
             ] else ...[
               // Upload prompt
