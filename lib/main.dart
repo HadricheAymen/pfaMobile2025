@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:pfa_mobile/services/auth_service.dart';
 import 'package:pfa_mobile/config/theme.dart';
 import 'package:pfa_mobile/config/routes.dart';
+import 'package:pfa_mobile/config/model_config.dart';
 import 'firebase_options.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Add performance logging
   debugPrint('App startup: initializing...');
   final startTime = DateTime.now();
-  
+
   try {
     debugPrint('App startup: initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    
+
     // Verify Firebase Storage is accessible
     try {
       final storageRef = FirebaseStorage.instance.ref().child('test');
@@ -28,15 +30,25 @@ Future<void> main() async {
       debugPrint('Firebase Storage initialization warning: $storageError');
       // Continue anyway, we'll handle storage errors in the app
     }
-    
+
     debugPrint('Firebase initialized successfully');
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
-  
+
+  // Initialize model configuration
+  debugPrint('App startup: initializing model configuration...');
+  ModelConfig.initialize();
+
+  // Print current config for debugging in debug mode
+  if (kDebugMode) {
+    ModelConfig.printCurrentConfig();
+  }
+
   final endTime = DateTime.now();
-  debugPrint('App startup completed in ${endTime.difference(startTime).inMilliseconds}ms');
-  
+  debugPrint(
+      'App startup completed in ${endTime.difference(startTime).inMilliseconds}ms');
+
   runApp(const MyApp());
 }
 

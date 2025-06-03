@@ -1,38 +1,35 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'dart:async';
-import 'dart:ui' as ui;
+import 'dart:convert';
 import 'dart:math' as math;
-import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:camera/camera.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:pfa_mobile/utils/responsive_utils.dart';
+import 'package:pfa_mobile/services/api_service.dart';
+import 'package:pfa_mobile/services/personality_class_service.dart';
+import 'package:pfa_mobile/widgets/model_selector_widget.dart';
+import 'package:pfa_mobile/widgets/model_comparison_widget.dart';
+import 'package:pfa_mobile/config/model_config.dart';
 
 class IrisForm extends StatefulWidget {
   const IrisForm({Key? key}) : super(key: key);
 
   @override
-  _IrisFormState createState() => _IrisFormState();
+  State<IrisForm> createState() => _IrisFormState();
 }
 
 class _IrisFormState extends State<IrisForm> {
   final _formKey = GlobalKey<FormState>();
-  File? _image;
-  bool _isAnalyzing = false;
-  bool _isDetectingFace = false;
-  Map<String, dynamic>? _analysisResult;
-  Map<String, dynamic>? _imageQuality;
-  Map<String, dynamic>? _faceDetectionResult;
 
-  // Camera controller
-  CameraController? _cameraController;
-  List<CameraDescription>? _cameras;
-  bool _showCamera = false;
+  // Enhanced iris analysis state
+  File? _leftIrisImage;
+  File? _rightIrisImage;
+  bool _isAnalyzing = false;
+  Map<String, dynamic>? _analysisResult;
+  Map<String, dynamic>? _personalityDescription;
 
   // Form data
   final TextEditingController _nameController = TextEditingController();
@@ -40,6 +37,21 @@ class _IrisFormState extends State<IrisForm> {
   final TextEditingController _ageController = TextEditingController();
   String _selectedGender = '';
   final TextEditingController _commentsController = TextEditingController();
+
+  // UI state
+  bool _showResults = false;
+  String? _errorMessage;
+
+  // Camera and image processing state
+  List<CameraDescription>? _cameras;
+  CameraController? _cameraController;
+  bool _showCamera = false;
+  File? _image;
+  bool _isDetectingFace = false;
+  Map<String, dynamic>? _faceDetectionResult;
+  bool _isExtractingIris = false;
+  bool _showExtractedIris = false;
+  Map<String, dynamic>? _imageQuality;
 
   @override
   void initState() {
@@ -61,16 +73,43 @@ class _IrisFormState extends State<IrisForm> {
   Future<void> _initializeCamera() async {
     try {
       _cameras = await availableCameras();
+      debugPrint('Found ${_cameras?.length ?? 0} cameras');
+      if (_cameras != null && _cameras!.isNotEmpty) {
+        for (var camera in _cameras!) {
+          debugPrint(
+              'Camera: ${camera.name}, Direction: ${camera.lensDirection}');
+        }
+      }
     } catch (e) {
       debugPrint('Error initializing cameras: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur d\'initialisation de la caméra: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _startCamera() async {
+    // Try to reinitialize cameras if they're not available
     if (_cameras == null || _cameras!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune caméra disponible')),
-      );
+      debugPrint('Cameras not initialized, trying to reinitialize...');
+      await _initializeCamera();
+    }
+
+    if (_cameras == null || _cameras!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Aucune caméra disponible. Vérifiez les permissions de l\'app.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -93,9 +132,11 @@ class _IrisFormState extends State<IrisForm> {
       });
     } catch (e) {
       debugPrint('Error starting camera: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur d\'accès à la caméra: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur d\'accès à la caméra: $e')),
+        );
+      }
     }
   }
 
@@ -141,15 +182,25 @@ class _IrisFormState extends State<IrisForm> {
         _image = processedImage;
         _faceDetectionResult = null;
         _showCamera = false;
+        _leftIrisImage = null;
+        _rightIrisImage = null;
+        _showExtractedIris = false;
+        _analysisResult = null; // Clear previous analysis results
+        _imageQuality = null; // Reset image quality
       });
 
       // Validate image quality
       _validateImageQuality(processedImage);
+
+      // Extract iris automatically
+      _extractIris(processedImage);
     } catch (e) {
       debugPrint('Error capturing photo: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la capture: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la capture: $e')),
+        );
+      }
     } finally {
       setState(() {
         _isDetectingFace = false;
@@ -234,9 +285,10 @@ class _IrisFormState extends State<IrisForm> {
         height: 800,
       );
 
-      // Save processed image
+      // Save processed image with unique filename to avoid caching issues
       final tempDir = await getTemporaryDirectory();
-      final tempPath = '${tempDir.path}/processed_image.jpg';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final tempPath = '${tempDir.path}/processed_image_$timestamp.jpg';
       final processedFile = File(tempPath);
       await processedFile
           .writeAsBytes(img.encodeJpg(resizedImage, quality: 90));
@@ -373,172 +425,203 @@ class _IrisFormState extends State<IrisForm> {
     }
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _extractIris(File imageFile) async {
+    setState(() {
+      _isExtractingIris = true;
+      _leftIrisImage = null;
+      _rightIrisImage = null;
+      _showExtractedIris = false;
+    });
+
     try {
-      final image = await ImagePicker().pickImage(
-        source: source,
-        maxWidth: 1280,
-        maxHeight: 720,
-        imageQuality: 90,
-      );
+      // Call the backend API to extract iris
+      final extractionResult = await ApiService.extractIris(imageFile);
 
-      if (image == null) return;
-
-      final File imageFile = File(image.path);
-
-      // For gallery images, we still validate face presence
-      if (source == ImageSource.gallery) {
-        setState(() {
-          _isDetectingFace = true;
-        });
-
-        final faceDetectionResult = await _detectFaceInImage(imageFile);
-
-        if (!faceDetectionResult['faceDetected']) {
-          setState(() {
-            _faceDetectionResult = faceDetectionResult;
-            _isDetectingFace = false;
-          });
-          return;
-        }
+      if (extractionResult.containsKey('error')) {
+        throw Exception(extractionResult['error']);
       }
 
-      setState(() {
-        _image = imageFile;
-        _faceDetectionResult = null;
-        _isDetectingFace = false;
-      });
+      // Check if the API returned iris images
+      if (extractionResult.containsKey('left_iris') &&
+          extractionResult.containsKey('right_iris')) {
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      // Validate image quality
-      _validateImageQuality(imageFile);
+        // Save left iris image from base64 or URL with unique filename
+        final leftIrisPath = '${tempDir.path}/left_iris_$timestamp.jpg';
+        final leftIrisFile = File(leftIrisPath);
+
+        // Save right iris image from base64 or URL with unique filename
+        final rightIrisPath = '${tempDir.path}/right_iris_$timestamp.jpg';
+        final rightIrisFile = File(rightIrisPath);
+
+        // Handle different response formats from the API
+        if (extractionResult['left_iris'] is String &&
+            extractionResult['right_iris'] is String) {
+          // If the API returns base64 encoded images
+          final leftIrisBytes = base64Decode(extractionResult['left_iris']);
+          final rightIrisBytes = base64Decode(extractionResult['right_iris']);
+
+          await leftIrisFile.writeAsBytes(leftIrisBytes);
+          await rightIrisFile.writeAsBytes(rightIrisBytes);
+        } else {
+          // Fallback: use original image (for demo purposes)
+          await leftIrisFile.writeAsBytes(await imageFile.readAsBytes());
+          await rightIrisFile.writeAsBytes(await imageFile.readAsBytes());
+        }
+
+        setState(() {
+          _leftIrisImage = leftIrisFile;
+          _rightIrisImage = rightIrisFile;
+          _showExtractedIris = true;
+          _isExtractingIris = false;
+        });
+      } else {
+        // Fallback with unique filenames
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+        final leftIrisPath = '${tempDir.path}/left_iris_$timestamp.jpg';
+        final leftIrisFile = File(leftIrisPath);
+        await leftIrisFile.writeAsBytes(await imageFile.readAsBytes());
+
+        final rightIrisPath = '${tempDir.path}/right_iris_$timestamp.jpg';
+        final rightIrisFile = File(rightIrisPath);
+        await rightIrisFile.writeAsBytes(await imageFile.readAsBytes());
+
+        setState(() {
+          _leftIrisImage = leftIrisFile;
+          _rightIrisImage = rightIrisFile;
+          _showExtractedIris = true;
+          _isExtractingIris = false;
+        });
+      }
     } catch (e) {
-      debugPrint('Error picking image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la sélection de l\'image: $e')),
-      );
+      debugPrint('Error extracting iris: $e');
+      setState(() {
+        _isExtractingIris = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'extraction des iris: $e')),
+        );
+      }
     }
   }
 
   void _removeImage() {
+    // Clear image cache to ensure fresh images are loaded
+    if (_image != null) {
+      _image!.delete().catchError((e) {
+        debugPrint('Error deleting image: $e');
+        return _image!;
+      });
+    }
+    if (_leftIrisImage != null) {
+      _leftIrisImage!.delete().catchError((e) {
+        debugPrint('Error deleting left iris: $e');
+        return _leftIrisImage!;
+      });
+    }
+    if (_rightIrisImage != null) {
+      _rightIrisImage!.delete().catchError((e) {
+        debugPrint('Error deleting right iris: $e');
+        return _rightIrisImage!;
+      });
+    }
+
     setState(() {
       _image = null;
       _imageQuality = null;
       _faceDetectionResult = null;
+      _leftIrisImage = null;
+      _rightIrisImage = null;
+      _showExtractedIris = false;
+      _analysisResult = null;
+      _personalityDescription = null;
+      _showResults = false;
+      _errorMessage = null;
     });
+
+    // Force image cache clear
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
   }
 
-  Future<void> _analyzeIris() async {
-    if (_image == null) return;
-
-    // Check if user is authenticated
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Vous devez être connecté pour analyser votre iris')),
-      );
-      Navigator.pushNamed(context, '/login');
-      return;
-    }
-
-    // Check internet connectivity
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      if (result.isEmpty || result[0].rawAddress.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Une connexion internet est requise pour l\'analyse')),
-        );
-        return;
-      }
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('Une connexion internet est requise pour l\'analyse')),
-      );
-      return;
-    }
-
-    // Validate form before proceeding
+  // Enhanced iris analysis method - now uses extracted iris images from camera
+  Future<void> _analyzeIrisEnhanced() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_leftIrisImage == null || _rightIrisImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Veuillez remplir tous les champs obligatoires')),
+          content: Text('Veuillez d\'abord extraire les iris de votre photo'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
     setState(() {
       _isAnalyzing = true;
+      _errorMessage = null;
+      _analysisResult = null;
+      _personalityDescription = null;
     });
 
     try {
-      // Process image before uploading
-      final processedImage = await _processImage(_image!);
+      // Use the efficient prediction endpoint with both iris images
+      debugPrint('🔍 Starting iris prediction with both images...');
 
-      // Generate analysis results with improved logic
-      final analysisResult = _calculateIrisAnalysis();
+      final result = await ApiService.predictIrisWithBothImages(
+        _leftIrisImage!,
+        _rightIrisImage!,
+      );
 
-      // Try to upload to Firebase Storage
-      String? imageUrl;
-      try {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('iris_images')
-            .child('${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-
-        await storageRef.putFile(processedImage);
-        imageUrl = await storageRef.getDownloadURL();
-        debugPrint('Image uploaded successfully: $imageUrl');
-      } catch (storageError) {
-        debugPrint('Firebase Storage error: $storageError');
-        // Continue without image URL
+      if (result.containsKey('error')) {
+        setState(() {
+          _errorMessage = result['error'];
+          _isAnalyzing = false;
+        });
+        return;
       }
 
-      // Get image dimensions for metadata
-      final imageBytes = await processedImage.readAsBytes();
-      final image = img.decodeImage(imageBytes);
-      final imageWidth = image?.width ?? 0;
-      final imageHeight = image?.height ?? 0;
-
-      // Save to Firestore with complete metadata
-      try {
-        await FirebaseFirestore.instance.collection('iris_images').add({
-          'userEmail': user.email,
-          'userName': _nameController.text,
-          'imageUrl': imageUrl ?? 'unavailable',
-          'uploadedAt': FieldValue.serverTimestamp(),
-          'analysisResult': analysisResult,
-          'metadata': {
-            'fileName': _image!.path.split('/').last,
-            'fileSize': await _image!.length(),
-            'imageWidth': imageWidth,
-            'imageHeight': imageHeight,
-            'quality': _imageQuality?['score'] ?? 0,
-          }
+      // Get primary personality class from API response
+      final primaryClass = result['primary_class'] ?? result['prediction'];
+      if (primaryClass == null) {
+        setState(() {
+          _errorMessage = 'Aucune classe de personnalité retournée par l\'API';
+          _isAnalyzing = false;
         });
+        return;
+      }
 
-        debugPrint('Analysis results saved to Firestore successfully');
-      } catch (firestoreError) {
-        debugPrint('Firestore error: $firestoreError');
+      // Fetch personality class description from Firestore
+      final personalityDescription =
+          await PersonalityClassService.findPersonalityClass(primaryClass);
+
+      setState(() {
+        _analysisResult = result;
+        _personalityDescription = personalityDescription ??
+            PersonalityClassService.createFallbackDescription(primaryClass);
+        _showResults = true;
+        _isAnalyzing = false;
+      });
+
+      // Show success message
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Erreur lors de la sauvegarde des résultats')),
+          SnackBar(
+            content: Text('Analyse terminée! Votre type: $primaryClass'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
-
-      setState(() {
-        _analysisResult = analysisResult;
-      });
     } catch (e) {
-      debugPrint('Error analyzing iris: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de l\'analyse: $e')),
-      );
-    } finally {
       setState(() {
+        _errorMessage = 'Erreur lors de l\'analyse: $e';
         _isAnalyzing = false;
       });
     }
@@ -1008,19 +1091,20 @@ class _IrisFormState extends State<IrisForm> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Image upload card
+          // Single camera container
           _buildImageUploadCard(context),
 
-          SizedBox(
-              height: context.responsiveSpacing(
-            mobilePortrait: 0.025,
-            mobileLandscape: 0.02,
-            tabletPortrait: 0.03,
-            tabletLandscape: 0.025,
-          )),
-
-          // Form card (only show if image is uploaded)
-          if (_image != null) ...[
+          // Form card (only show if iris images are extracted)
+          if (_showExtractedIris &&
+              _leftIrisImage != null &&
+              _rightIrisImage != null) ...[
+            SizedBox(
+                height: context.responsiveSpacing(
+              mobilePortrait: 0.025,
+              mobileLandscape: 0.02,
+              tabletPortrait: 0.03,
+              tabletLandscape: 0.025,
+            )),
             _buildFormCard(context),
 
             SizedBox(
@@ -1031,12 +1115,26 @@ class _IrisFormState extends State<IrisForm> {
               tabletLandscape: 0.025,
             )),
 
-            // Analyze button
+            // Model selector card (only show if enabled in configuration)
+            if (ModelConfig.showModelSelector) ...[
+              _buildModelSelectorCard(context),
+              SizedBox(
+                  height: context.responsiveSpacing(
+                mobilePortrait: 0.025,
+                mobileLandscape: 0.02,
+                tabletPortrait: 0.03,
+                tabletLandscape: 0.025,
+              )),
+            ],
+
+            // Analyze button (only show when iris images are extracted)
             _buildAnalyzeButtonCard(context),
           ],
 
           // Results section
-          if (_analysisResult != null) ...[
+          if (_showResults &&
+              _analysisResult != null &&
+              _personalityDescription != null) ...[
             SizedBox(
                 height: context.responsiveSpacing(
               mobilePortrait: 0.03,
@@ -1044,7 +1142,59 @@ class _IrisFormState extends State<IrisForm> {
               tabletPortrait: 0.035,
               tabletLandscape: 0.03,
             )),
-            _buildResultsCard(context),
+            _buildEnhancedResultsCard(context),
+          ],
+
+          // Error message display
+          if (_errorMessage != null) ...[
+            SizedBox(
+                height: context.responsiveSpacing(
+              mobilePortrait: 0.02,
+              mobileLandscape: 0.015,
+              tabletPortrait: 0.025,
+              tabletLandscape: 0.018,
+            )),
+            Container(
+              padding: EdgeInsets.all(
+                context.responsiveSpacing(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.035,
+                  tabletPortrait: 0.045,
+                  tabletLandscape: 0.04,
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red[300]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.red[700]),
+                  SizedBox(
+                      width: context.responsiveSpacing(
+                    mobilePortrait: 0.02,
+                    mobileLandscape: 0.015,
+                    tabletPortrait: 0.025,
+                    tabletLandscape: 0.018,
+                  )),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontSize: context.responsiveFontSize(
+                          mobilePortrait: 0.035,
+                          mobileLandscape: 0.028,
+                          tabletPortrait: 0.03,
+                          tabletLandscape: 0.025,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),
@@ -1082,6 +1232,8 @@ class _IrisFormState extends State<IrisForm> {
                       width: double.infinity,
                       child: Image.file(
                         _image!,
+                        key: ValueKey(
+                            _image!.path), // Force refresh when path changes
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -1150,12 +1302,177 @@ class _IrisFormState extends State<IrisForm> {
                 tabletLandscape: 0.018,
               )),
 
-              // Face detection and quality feedback
-              if (_faceDetectionResult != null)
-                _buildFeedbackCard(context, _faceDetectionResult!),
+              // Extract iris button
+              if (!_showExtractedIris && !_isExtractingIris)
+                ElevatedButton.icon(
+                  onPressed: () => _extractIris(_image!),
+                  icon: const Icon(Icons.visibility),
+                  label: const Text('Extraire les iris'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8A4FFF),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      vertical: context.responsiveSpacing(
+                        mobilePortrait: 0.018,
+                        mobileLandscape: 0.015,
+                        tabletPortrait: 0.02,
+                        tabletLandscape: 0.016,
+                      ),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                ),
 
-              if (_imageQuality != null)
-                _buildQualityCard(context, _imageQuality!),
+              // Loading indicator for extraction
+              if (_isExtractingIris)
+                Column(
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xFF8A4FFF)),
+                    ),
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        mobilePortrait: 0.01,
+                        mobileLandscape: 0.008,
+                        tabletPortrait: 0.012,
+                        tabletLandscape: 0.01,
+                      ),
+                    ),
+                    const Text('Extraction des iris en cours...'),
+                  ],
+                ),
+
+              // Extracted iris images
+              if (_showExtractedIris &&
+                  _leftIrisImage != null &&
+                  _rightIrisImage != null) ...[
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    mobilePortrait: 0.02,
+                    mobileLandscape: 0.015,
+                    tabletPortrait: 0.025,
+                    tabletLandscape: 0.018,
+                  ),
+                ),
+                Text(
+                  'Iris extraits',
+                  style: TextStyle(
+                    fontSize: context.responsiveFontSize(
+                      mobilePortrait: 0.045,
+                      mobileLandscape: 0.035,
+                      tabletPortrait: 0.04,
+                      tabletLandscape: 0.033,
+                    ),
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF333333),
+                  ),
+                ),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    mobilePortrait: 0.02,
+                    mobileLandscape: 0.015,
+                    tabletPortrait: 0.025,
+                    tabletLandscape: 0.018,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            'Iris gauche',
+                            style: TextStyle(
+                              fontSize: context.responsiveFontSize(
+                                mobilePortrait: 0.035,
+                                mobileLandscape: 0.028,
+                                tabletPortrait: 0.03,
+                                tabletLandscape: 0.025,
+                              ),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              mobilePortrait: 0.01,
+                              mobileLandscape: 0.008,
+                              tabletPortrait: 0.012,
+                              tabletLandscape: 0.01,
+                            ),
+                          ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.file(
+                              _leftIrisImage!,
+                              key: ValueKey(_leftIrisImage!
+                                  .path), // Force refresh when path changes
+                              height: context.responsiveHeight(
+                                mobilePortrait: 0.15,
+                                mobileLandscape: 0.2,
+                                tabletPortrait: 0.12,
+                                tabletLandscape: 0.17,
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: context.responsiveSpacing(
+                        mobilePortrait: 0.02,
+                        mobileLandscape: 0.015,
+                        tabletPortrait: 0.025,
+                        tabletLandscape: 0.018,
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            'Iris droit',
+                            style: TextStyle(
+                              fontSize: context.responsiveFontSize(
+                                mobilePortrait: 0.035,
+                                mobileLandscape: 0.028,
+                                tabletPortrait: 0.03,
+                                tabletLandscape: 0.025,
+                              ),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              mobilePortrait: 0.01,
+                              mobileLandscape: 0.008,
+                              tabletPortrait: 0.012,
+                              tabletLandscape: 0.01,
+                            ),
+                          ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.file(
+                              _rightIrisImage!,
+                              key: ValueKey(_rightIrisImage!
+                                  .path), // Force refresh when path changes
+                              height: context.responsiveHeight(
+                                mobilePortrait: 0.15,
+                                mobileLandscape: 0.2,
+                                tabletPortrait: 0.12,
+                                tabletLandscape: 0.17,
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ] else ...[
               // Upload prompt
               _buildUploadPrompt(context),
@@ -1384,99 +1701,6 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildPercentageBar(
-      BuildContext context, String label, int percentage) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: context.responsiveSpacing(
-          mobilePortrait: 0.01,
-          mobileLandscape: 0.008,
-          tabletPortrait: 0.012,
-          tabletLandscape: 0.01,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$label: $percentage%',
-            style: TextStyle(
-              fontSize: context.responsiveFontSize(
-                mobilePortrait: 0.045,
-                mobileLandscape: 0.035,
-                tabletPortrait: 0.035,
-                tabletLandscape: 0.03,
-                desktopPortrait: 0.03,
-                desktopLandscape: 0.025,
-              ),
-            ),
-          ),
-          SizedBox(
-              height: context.responsiveSpacing(
-            mobilePortrait: 0.004,
-            mobileLandscape: 0.003,
-            tabletPortrait: 0.005,
-            tabletLandscape: 0.004,
-          )),
-          LinearProgressIndicator(
-            value: percentage / 100,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(
-              _getColorForType(label),
-            ),
-            minHeight: context.responsiveSpacing(
-              mobilePortrait: 0.012,
-              mobileLandscape: 0.01,
-              tabletPortrait: 0.014,
-              tabletLandscape: 0.012,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getColorForType(String type) {
-    switch (type) {
-      case 'Fleur':
-        return Colors.purple;
-      case 'Bijou':
-        return Colors.blue;
-      case 'Flux':
-        return Colors.green;
-      case 'Shaker':
-        return Colors.orange;
-      // Subclass combinations
-      case 'Fleur-Bijou':
-        return const Color(0xFF9C27B0); // Purple-Blue blend
-      case 'Bijou-Shaker':
-        return const Color(0xFF3F51B5); // Blue-Orange blend (Indigo)
-      case 'Shaker-Flux':
-        return const Color(0xFFFF5722); // Orange-Green blend (Deep Orange)
-      case 'Flux-Fleur':
-        return const Color(0xFF8BC34A); // Green-Purple blend (Light Green)
-      case 'Fleur-Shaker':
-        return const Color(0xFFE91E63); // Purple-Orange blend (Pink)
-      case 'Bijou-Flux':
-        return const Color(0xFF00BCD4); // Blue-Green blend (Cyan)
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _getImageQualityColor(String level) {
-    switch (level) {
-      case 'good':
-        return Colors.green;
-      case 'medium':
-        return Colors.yellow;
-      case 'poor':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   Widget _buildUploadPrompt(BuildContext context) {
     return Column(
       children: [
@@ -1519,7 +1743,7 @@ class _IrisFormState extends State<IrisForm> {
           tabletLandscape: 0.012,
         )),
         Text(
-          'Utilisez la caméra pour capturer votre iris ou sélectionnez une image depuis votre galerie',
+          'Utilisez la caméra pour capturer votre visage et extraire vos iris',
           style: TextStyle(
             fontSize: context.responsiveFontSize(
               mobilePortrait: 0.035,
@@ -1538,309 +1762,30 @@ class _IrisFormState extends State<IrisForm> {
           tabletPortrait: 0.035,
           tabletLandscape: 0.03,
         )),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _startCamera,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Caméra'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8A4FFF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    vertical: context.responsiveSpacing(
-                      mobilePortrait: 0.018,
-                      mobileLandscape: 0.015,
-                      tabletPortrait: 0.02,
-                      tabletLandscape: 0.016,
-                    ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _startCamera,
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Ouvrir la caméra'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8A4FFF),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                vertical: context.responsiveSpacing(
+                  mobilePortrait: 0.018,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.02,
+                  tabletLandscape: 0.016,
                 ),
               ),
-            ),
-            SizedBox(
-                width: context.responsiveSpacing(
-              mobilePortrait: 0.03,
-              mobileLandscape: 0.025,
-              tabletPortrait: 0.035,
-              tabletLandscape: 0.03,
-            )),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _pickImage(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library),
-                label: const Text('Galerie'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[600],
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    vertical: context.responsiveSpacing(
-                      mobilePortrait: 0.018,
-                      mobileLandscape: 0.015,
-                      tabletPortrait: 0.02,
-                      tabletLandscape: 0.016,
-                    ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
               ),
             ),
-          ],
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFeedbackCard(
-      BuildContext context, Map<String, dynamic> feedback) {
-    final bool isSuccess = feedback['faceDetected'] ?? false;
-    final Color statusColor = isSuccess ? Colors.green : Colors.red;
-
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          mobilePortrait: 0.015,
-          mobileLandscape: 0.01,
-          tabletPortrait: 0.018,
-          tabletLandscape: 0.012,
-        ),
-      ),
-      padding: context.responsivePadding(
-        mobilePortrait: 0.03,
-        mobileLandscape: 0.025,
-        tabletPortrait: 0.035,
-        tabletLandscape: 0.03,
-      ),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isSuccess ? Icons.check_circle : Icons.error,
-                color: statusColor,
-                size: context.responsiveFontSize(
-                  mobilePortrait: 0.05,
-                  mobileLandscape: 0.04,
-                  tabletPortrait: 0.045,
-                  tabletLandscape: 0.038,
-                ),
-              ),
-              SizedBox(
-                  width: context.responsiveSpacing(
-                mobilePortrait: 0.02,
-                mobileLandscape: 0.015,
-                tabletPortrait: 0.025,
-                tabletLandscape: 0.018,
-              )),
-              Expanded(
-                child: Text(
-                  feedback['message'] ?? '',
-                  style: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      mobilePortrait: 0.04,
-                      mobileLandscape: 0.032,
-                      tabletPortrait: 0.035,
-                      tabletLandscape: 0.03,
-                    ),
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (feedback['suggestions'] != null &&
-              (feedback['suggestions'] as List).isNotEmpty) ...[
-            SizedBox(
-                height: context.responsiveSpacing(
-              mobilePortrait: 0.015,
-              mobileLandscape: 0.01,
-              tabletPortrait: 0.018,
-              tabletLandscape: 0.012,
-            )),
-            ...(feedback['suggestions'] as List).map(
-              (suggestion) => Padding(
-                padding: EdgeInsets.only(
-                  bottom: context.responsiveSpacing(
-                    mobilePortrait: 0.008,
-                    mobileLandscape: 0.006,
-                    tabletPortrait: 0.01,
-                    tabletLandscape: 0.008,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '• ',
-                      style: TextStyle(
-                        color: statusColor.withValues(alpha: 0.8),
-                        fontSize: context.responsiveFontSize(
-                          mobilePortrait: 0.035,
-                          mobileLandscape: 0.028,
-                          tabletPortrait: 0.03,
-                          tabletLandscape: 0.025,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        suggestion,
-                        style: TextStyle(
-                          color: statusColor.withValues(alpha: 0.8),
-                          fontSize: context.responsiveFontSize(
-                            mobilePortrait: 0.035,
-                            mobileLandscape: 0.028,
-                            tabletPortrait: 0.03,
-                            tabletLandscape: 0.025,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQualityCard(BuildContext context, Map<String, dynamic> quality) {
-    final String level = quality['level'] ?? 'poor';
-    final Color statusColor = _getImageQualityColor(level);
-
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          mobilePortrait: 0.015,
-          mobileLandscape: 0.01,
-          tabletPortrait: 0.018,
-          tabletLandscape: 0.012,
-        ),
-      ),
-      padding: context.responsivePadding(
-        mobilePortrait: 0.03,
-        mobileLandscape: 0.025,
-        tabletPortrait: 0.035,
-        tabletLandscape: 0.03,
-      ),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                level == 'good'
-                    ? Icons.high_quality
-                    : level == 'medium'
-                        ? Icons.warning
-                        : Icons.error,
-                color: statusColor,
-                size: context.responsiveFontSize(
-                  mobilePortrait: 0.05,
-                  mobileLandscape: 0.04,
-                  tabletPortrait: 0.045,
-                  tabletLandscape: 0.038,
-                ),
-              ),
-              SizedBox(
-                  width: context.responsiveSpacing(
-                mobilePortrait: 0.02,
-                mobileLandscape: 0.015,
-                tabletPortrait: 0.025,
-                tabletLandscape: 0.018,
-              )),
-              Expanded(
-                child: Text(
-                  quality['message'] ?? '',
-                  style: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      mobilePortrait: 0.04,
-                      mobileLandscape: 0.032,
-                      tabletPortrait: 0.035,
-                      tabletLandscape: 0.03,
-                    ),
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (quality['suggestions'] != null &&
-              (quality['suggestions'] as List).isNotEmpty) ...[
-            SizedBox(
-                height: context.responsiveSpacing(
-              mobilePortrait: 0.015,
-              mobileLandscape: 0.01,
-              tabletPortrait: 0.018,
-              tabletLandscape: 0.012,
-            )),
-            ...(quality['suggestions'] as List).map(
-              (suggestion) => Padding(
-                padding: EdgeInsets.only(
-                  bottom: context.responsiveSpacing(
-                    mobilePortrait: 0.008,
-                    mobileLandscape: 0.006,
-                    tabletPortrait: 0.01,
-                    tabletLandscape: 0.008,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '• ',
-                      style: TextStyle(
-                        color: statusColor.withValues(alpha: 0.8),
-                        fontSize: context.responsiveFontSize(
-                          mobilePortrait: 0.035,
-                          mobileLandscape: 0.028,
-                          tabletPortrait: 0.03,
-                          tabletLandscape: 0.025,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        suggestion,
-                        style: TextStyle(
-                          color: statusColor.withValues(alpha: 0.8),
-                          fontSize: context.responsiveFontSize(
-                            mobilePortrait: 0.035,
-                            mobileLandscape: 0.028,
-                            tabletPortrait: 0.03,
-                            tabletLandscape: 0.025,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 
@@ -1903,7 +1848,11 @@ class _IrisFormState extends State<IrisForm> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _image == null || _isAnalyzing ? null : _analyzeIris,
+            onPressed: _leftIrisImage == null ||
+                    _rightIrisImage == null ||
+                    _isAnalyzing
+                ? null
+                : _analyzeIrisEnhanced,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF8A4FFF),
               padding: EdgeInsets.symmetric(
@@ -2004,7 +1953,10 @@ class _IrisFormState extends State<IrisForm> {
     );
   }
 
-  Widget _buildResultsCard(BuildContext context) {
+  Widget _buildEnhancedResultsCard(BuildContext context) {
+    final primaryClass = _analysisResult!['primary_class'];
+    final personalityData = _personalityDescription!;
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -2023,7 +1975,7 @@ class _IrisFormState extends State<IrisForm> {
             Row(
               children: [
                 Icon(
-                  Icons.analytics,
+                  Icons.psychology,
                   color: const Color(0xFF8A4FFF),
                   size: context.responsiveFontSize(
                     mobilePortrait: 0.06,
@@ -2040,7 +1992,7 @@ class _IrisFormState extends State<IrisForm> {
                   tabletLandscape: 0.018,
                 )),
                 Text(
-                  'Résultat de l\'analyse',
+                  'Résultats de l\'analyse',
                   style: TextStyle(
                     fontSize: context.responsiveFontSize(
                       mobilePortrait: 0.05,
@@ -2086,17 +2038,15 @@ class _IrisFormState extends State<IrisForm> {
               child: Column(
                 children: [
                   Text(
-                    'Votre type d\'iris principal :',
+                    personalityData['icon'] ?? '👁️',
                     style: TextStyle(
                       fontSize: context.responsiveFontSize(
-                        mobilePortrait: 0.04,
-                        mobileLandscape: 0.032,
-                        tabletPortrait: 0.035,
-                        tabletLandscape: 0.03,
+                        mobilePortrait: 0.1,
+                        mobileLandscape: 0.08,
+                        tabletPortrait: 0.09,
+                        tabletLandscape: 0.075,
                       ),
-                      color: Colors.grey[700],
                     ),
-                    textAlign: TextAlign.center,
                   ),
                   SizedBox(
                       height: context.responsiveSpacing(
@@ -2106,7 +2056,7 @@ class _IrisFormState extends State<IrisForm> {
                     tabletLandscape: 0.01,
                   )),
                   Text(
-                    _analysisResult!['primaryType'],
+                    personalityData['name'] ?? primaryClass,
                     style: TextStyle(
                       fontSize: context.responsiveFontSize(
                         mobilePortrait: 0.08,
@@ -2130,7 +2080,7 @@ class _IrisFormState extends State<IrisForm> {
               tabletLandscape: 0.025,
             )),
             Text(
-              'Répartition détaillée :',
+              'Description',
               style: TextStyle(
                 fontSize: context.responsiveFontSize(
                   mobilePortrait: 0.045,
@@ -2149,140 +2099,117 @@ class _IrisFormState extends State<IrisForm> {
               tabletPortrait: 0.018,
               tabletLandscape: 0.012,
             )),
-            _buildPercentageBar(
-                context, 'Fleur', _analysisResult!['fleurPercentage']),
-            _buildPercentageBar(
-                context, 'Bijou', _analysisResult!['bijouPercentage']),
-            _buildPercentageBar(
-                context, 'Flux', _analysisResult!['fluxPercentage']),
-            _buildPercentageBar(
-                context, 'Shaker', _analysisResult!['shakerPercentage']),
-            SizedBox(
-                height: context.responsiveSpacing(
-              mobilePortrait: 0.02,
-              mobileLandscape: 0.015,
-              tabletPortrait: 0.025,
-              tabletLandscape: 0.018,
-            )),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context,
-                      '/iris_types/${_analysisResult!['primaryTypeRoute']}');
-                },
-                icon: const Icon(Icons.info_outline),
-                label: const Text('En savoir plus sur votre type'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8A4FFF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    vertical: context.responsiveSpacing(
-                      mobilePortrait: 0.018,
-                      mobileLandscape: 0.015,
-                      tabletPortrait: 0.02,
-                      tabletLandscape: 0.016,
-                    ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
+            Text(
+              personalityData['description'] ?? 'Description non disponible',
+              style: TextStyle(
+                fontSize: context.responsiveFontSize(
+                  mobilePortrait: 0.04,
+                  mobileLandscape: 0.032,
+                  tabletPortrait: 0.035,
+                  tabletLandscape: 0.03,
                 ),
+                color: Colors.grey[700],
+                height: 1.5,
               ),
             ),
+            if (personalityData['characteristics'] != null) ...[
+              SizedBox(
+                  height: context.responsiveSpacing(
+                mobilePortrait: 0.02,
+                mobileLandscape: 0.015,
+                tabletPortrait: 0.025,
+                tabletLandscape: 0.018,
+              )),
+              Text(
+                'Caractéristiques',
+                style: TextStyle(
+                  fontSize: context.responsiveFontSize(
+                    mobilePortrait: 0.045,
+                    mobileLandscape: 0.035,
+                    tabletPortrait: 0.04,
+                    tabletLandscape: 0.033,
+                  ),
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF333333),
+                ),
+              ),
+              SizedBox(
+                  height: context.responsiveSpacing(
+                mobilePortrait: 0.01,
+                mobileLandscape: 0.008,
+                tabletPortrait: 0.012,
+                tabletLandscape: 0.01,
+              )),
+              Wrap(
+                spacing: context.responsiveSpacing(
+                  mobilePortrait: 0.02,
+                  mobileLandscape: 0.015,
+                  tabletPortrait: 0.025,
+                  tabletLandscape: 0.018,
+                ),
+                runSpacing: context.responsiveSpacing(
+                  mobilePortrait: 0.01,
+                  mobileLandscape: 0.008,
+                  tabletPortrait: 0.012,
+                  tabletLandscape: 0.01,
+                ),
+                children: (personalityData['characteristics'] as List)
+                    .map((characteristic) => Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              mobilePortrait: 0.03,
+                              mobileLandscape: 0.025,
+                              tabletPortrait: 0.035,
+                              tabletLandscape: 0.03,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              mobilePortrait: 0.01,
+                              mobileLandscape: 0.008,
+                              tabletPortrait: 0.012,
+                              tabletLandscape: 0.01,
+                            ),
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF8A4FFF).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF8A4FFF)
+                                  .withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            characteristic.toString(),
+                            style: TextStyle(
+                              fontSize: context.responsiveFontSize(
+                                mobilePortrait: 0.035,
+                                mobileLandscape: 0.028,
+                                tabletPortrait: 0.03,
+                                tabletLandscape: 0.025,
+                              ),
+                              color: const Color(0xFF8A4FFF),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  /// Calculate iris analysis with improved logic for handling ties and subclasses
-  Map<String, dynamic> _calculateIrisAnalysis() {
-    final random = math.Random();
-
-    // Generate individual class scores (0-100 each)
-    final fleurScore = random.nextInt(80) + 20; // 20-100
-    final bijouScore = random.nextInt(80) + 20; // 20-100
-    final fluxScore = random.nextInt(80) + 20; // 20-100
-    final shakerScore = random.nextInt(80) + 20; // 20-100
-
-    // Create list of scores with their corresponding types
-    final scores = [
-      {'type': 'Fleur', 'route': 'fleur', 'score': fleurScore},
-      {'type': 'Bijou', 'route': 'bijou', 'score': bijouScore},
-      {'type': 'Flux', 'route': 'flux', 'score': fluxScore},
-      {'type': 'Shaker', 'route': 'shaker', 'score': shakerScore},
-    ];
-
-    // Sort by score (highest first)
-    scores.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
-
-    final firstScore = scores[0]['score'] as int;
-    final secondScore = scores[1]['score'] as int;
-
-    String primaryType;
-    String primaryTypeRoute;
-
-    // Check if there's a tie (difference <= 5 points)
-    if ((firstScore - secondScore).abs() <= 5) {
-      // There's a tie, create a subclass combination
-      final firstType = scores[0]['type'] as String;
-      final secondType = scores[1]['type'] as String;
-
-      final combination = _createSubclass(firstType, secondType);
-      primaryType = combination['type']!;
-      primaryTypeRoute = combination['route']!;
-    } else {
-      // Clear winner, use the highest score
-      primaryType = scores[0]['type'] as String;
-      primaryTypeRoute = scores[0]['route'] as String;
-    }
-
-    // Convert scores to percentages (normalize to 100%)
-    final totalScore = fleurScore + bijouScore + fluxScore + shakerScore;
-    final fleurPercentage = ((fleurScore / totalScore) * 100).round();
-    final bijouPercentage = ((bijouScore / totalScore) * 100).round();
-    final fluxPercentage = ((fluxScore / totalScore) * 100).round();
-    final shakerPercentage =
-        100 - fleurPercentage - bijouPercentage - fluxPercentage;
-
-    return {
-      'primaryType': primaryType,
-      'primaryTypeRoute': primaryTypeRoute,
-      'fleurPercentage': fleurPercentage,
-      'bijouPercentage': bijouPercentage,
-      'fluxPercentage': fluxPercentage,
-      'shakerPercentage': shakerPercentage,
-      'description': 'Votre iris révèle une personnalité de type $primaryType.',
-      'rawScores': {
-        'fleur': fleurScore,
-        'bijou': bijouScore,
-        'flux': fluxScore,
-        'shaker': shakerScore,
+  Widget _buildModelSelectorCard(BuildContext context) {
+    return ModelSelectorWidget(
+      onModelChanged: (PredictionModel model) {
+        // Optional: Add any additional logic when model changes
+        debugPrint('Model changed to: ${model.displayName}');
       },
-    };
-  }
-
-  /// Create subclass combination for tied scores
-  Map<String, String> _createSubclass(String type1, String type2) {
-    // Define all possible combinations
-    final combinations = {
-      'Fleur-Bijou': {'type': 'Fleur-Bijou', 'route': 'fleur-bijou'},
-      'Bijou-Fleur': {'type': 'Fleur-Bijou', 'route': 'fleur-bijou'},
-      'Bijou-Shaker': {'type': 'Bijou-Shaker', 'route': 'bijou-shaker'},
-      'Shaker-Bijou': {'type': 'Bijou-Shaker', 'route': 'bijou-shaker'},
-      'Shaker-Flux': {'type': 'Shaker-Flux', 'route': 'shaker-flux'},
-      'Flux-Shaker': {'type': 'Shaker-Flux', 'route': 'shaker-flux'},
-      'Flux-Fleur': {'type': 'Flux-Fleur', 'route': 'flux-fleur'},
-      'Fleur-Flux': {'type': 'Flux-Fleur', 'route': 'flux-fleur'},
-      'Fleur-Shaker': {'type': 'Fleur-Shaker', 'route': 'fleur-shaker'},
-      'Shaker-Fleur': {'type': 'Fleur-Shaker', 'route': 'fleur-shaker'},
-      'Bijou-Flux': {'type': 'Bijou-Flux', 'route': 'bijou-flux'},
-      'Flux-Bijou': {'type': 'Bijou-Flux', 'route': 'bijou-flux'},
-    };
-
-    final key = '$type1-$type2';
-    return combinations[key] ?? {'type': type1, 'route': type1.toLowerCase()};
+      showDescription: true,
+      showTechnicalInfo: false,
+    );
   }
 
   @override
