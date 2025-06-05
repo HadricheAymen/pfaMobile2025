@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:pfa_mobile/services/auth_service.dart';
 import 'package:pfa_mobile/config/theme.dart';
 import 'package:pfa_mobile/config/routes.dart';
-import 'package:pfa_mobile/config/model_config.dart';
 import 'firebase_options.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -36,14 +34,7 @@ Future<void> main() async {
     debugPrint('Firebase initialization error: $e');
   }
 
-  // Initialize model configuration
-  debugPrint('App startup: initializing model configuration...');
-  ModelConfig.initialize();
 
-  // Print current config for debugging in debug mode
-  if (kDebugMode) {
-    ModelConfig.printCurrentConfig();
-  }
 
   final endTime = DateTime.now();
   debugPrint(
@@ -51,7 +42,6 @@ Future<void> main() async {
 
   runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

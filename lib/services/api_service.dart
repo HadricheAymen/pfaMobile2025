@@ -5,68 +5,29 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pfa_mobile/config/api_config.dart';
-
-// Enum to define available prediction models
-enum PredictionModel {
-  efficient, // Original efficient model (/api/predict-efficient)
-  mobilenet, // New MobileNet model (/api/predict-mobilenet)
-}
-
-// Extension to get model-specific configurations
-extension PredictionModelExtension on PredictionModel {
-  String get displayName {
-    switch (this) {
-      case PredictionModel.efficient:
-        return 'Modèle Efficace';
-      case PredictionModel.mobilenet:
-        return 'Modèle MobileNet';
-    }
-  }
-
-  String get endpoint {
-    switch (this) {
-      case PredictionModel.efficient:
-        return ApiConfig.efficientPredictionUrl;
-      case PredictionModel.mobilenet:
-        return ApiConfig.mobilenetPredictionUrl;
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case PredictionModel.efficient:
-        return 'Modèle d\'analyse d\'iris optimisé pour la rapidité et la précision';
-      case PredictionModel.mobilenet:
-        return 'Modèle MobileNet optimisé pour les appareils mobiles avec architecture légère';
-    }
-  }
-
-  String get technicalInfo {
-    switch (this) {
-      case PredictionModel.efficient:
-        return 'Architecture: CNN personnalisé\nOptimisation: Vitesse et précision\nTaille: Modèle complet';
-      case PredictionModel.mobilenet:
-        return 'Architecture: MobileNet\nOptimisation: Efficacité mobile\nTaille: Modèle léger';
-    }
-  }
-}
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
 
 class ApiService {
-  // Current selected model - can be changed by developer
-  static PredictionModel _currentModel = PredictionModel.efficient;
-
-  // Getter for current model
-  static PredictionModel get currentModel => _currentModel;
-
-  // Method to switch between models
-  static void setModel(PredictionModel model) {
-    _currentModel = model;
-    debugPrint('🔄 Switched to model: ${model.displayName}');
-    debugPrint('📍 Endpoint: ${model.endpoint}');
+  // Helper method to get user-friendly error messages
+  static String _getUserFriendlyError(String error) {
+    if (error.contains('mobileNet.h5')) {
+      return 'Le modèle d\'IA n\'est pas disponible actuellement. Veuillez réessayer plus tard.';
+    } else if (error.contains('timeout')) {
+      return 'La connexion a expiré. Vérifiez votre connexion internet et réessayez.';
+    } else if (error.contains('Network error')) {
+      return 'Erreur de réseau. Vérifiez votre connexion internet.';
+    } else if (error.contains('Deux images sont requises')) {
+      return 'Les deux images d\'iris sont requises pour l\'analyse.';
+    } else if (error.contains('500')) {
+      return 'Erreur du serveur. Veuillez réessayer dans quelques minutes.';
+    } else if (error.contains('400')) {
+      return 'Erreur de requête. Vérifiez que vos images sont valides.';
+    }
+    return error; // Return original error if no specific match
   }
 
-  // Get all available models
-  static List<PredictionModel> get availableModels => PredictionModel.values;
   // Health check endpoint
   static Future<Map<String, dynamic>> healthCheck() async {
     try {
@@ -86,194 +47,205 @@ class ApiService {
     }
   }
 
-  // Method to predict iris from image file using the correct field name
+  // Method to predict iris from image file using MobileNet as primary
   static Future<Map<String, dynamic>> predictIris(File imageFile) async {
-    // Use the efficient prediction endpoint with 'image' field
-    return await _tryPredictIris(
-        imageFile, ApiConfig.efficientPredictionUrl, 'image');
-  }
-
-  // Method to predict iris using both left and right iris images
-  static Future<Map<String, dynamic>> predictIrisWithBothImages(
-      File leftIrisImage, File rightIrisImage) async {
     try {
-      debugPrint('🔍 Starting dual iris prediction...');
-      debugPrint('🤖 Using model: ${_currentModel.displayName}');
-      debugPrint('📁 Left iris file path: ${leftIrisImage.path}');
-      debugPrint('📁 Right iris file path: ${rightIrisImage.path}');
-      debugPrint(
-          '📏 Left iris file size: ${await leftIrisImage.length()} bytes');
-      debugPrint(
-          '📏 Right iris file size: ${await rightIrisImage.length()} bytes');
+      debugPrint('🤖 Trying MobileNet model first (primary)...');
 
-      // Get current user ID if logged in
-      final user = FirebaseAuth.instance.currentUser;
-      final userId = user?.uid;
-      debugPrint('👤 User ID: $userId');
+      // Try MobileNet first
+      final mobileNetResult = await _tryPredictIris(
+          imageFile,
+          ApiConfig.predictionUrl, // /api/predict-mobilenet
+          'image');
 
-      // Use current model's endpoint
-      final endpoint = _currentModel.endpoint;
-      debugPrint('🌐 API URL: $endpoint');
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(endpoint),
-      );
-
-      // Add headers
-      request.headers.addAll({
-        'Connection': 'keep-alive',
-        'Accept': 'application/json',
-      });
-
-      debugPrint('📋 Request headers: ${request.headers}');
-
-      // Add user ID if available
-      if (userId != null) {
-        request.fields['user_id'] = userId;
+      // If MobileNet succeeds, return immediately
+      if (!mobileNetResult.containsKey('error')) {
+        debugPrint('✅ MobileNet prediction successful!');
+        mobileNetResult['model_used'] = 'MobileNet (Primary)';
+        return mobileNetResult;
       }
 
-      debugPrint('📝 Request fields: ${request.fields}');
+      // If MobileNet fails, try efficient model as fallback
+      debugPrint('🔄 MobileNet failed, trying Efficient model as fallback...');
+      debugPrint('MobileNet error: ${mobileNetResult['error']}');
 
-      // Add both iris images as required by the API
-      request.files.add(await http.MultipartFile.fromPath(
-        'image1', // Left iris as image1
-        leftIrisImage.path,
-        filename: 'left_iris.jpg',
-      ));
+      final efficientResult =
+          await _tryPredictIris(imageFile, ApiConfig.efficientNetUrl, 'image');
 
-      request.files.add(await http.MultipartFile.fromPath(
-        'image2', // Right iris as image2
-        rightIrisImage.path,
-        filename: 'right_iris.jpg',
-      ));
-
-      debugPrint(
-          '📎 Added left iris file: left_iris.jpg, size: ${await leftIrisImage.length()} bytes');
-      debugPrint(
-          '📎 Added right iris file: right_iris.jpg, size: ${await rightIrisImage.length()} bytes');
-
-      debugPrint('🚀 Sending request...');
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-
-      debugPrint('📨 Response status: ${response.statusCode}');
-      debugPrint('📨 Response headers: ${response.headers}');
-      debugPrint('📨 Response body: $responseBody');
-      debugPrint('');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> result = json.decode(responseBody);
-        debugPrint('✅ Prediction successful: $result');
-        return result;
-      } else {
-        debugPrint('❌ API Error: ${response.statusCode} - $responseBody');
-        debugPrint('');
-        return {
-          'error': 'API Error: ${response.statusCode} - $responseBody',
-          'status_code': response.statusCode,
-          'response_body': responseBody,
-        };
+      // If efficient model also fails, return the original MobileNet error
+      if (efficientResult.containsKey('error')) {
+        debugPrint(
+            '❌ Both models failed. Returning MobileNet error as primary.');
+        return mobileNetResult;
       }
+
+      // Efficient model succeeded as fallback
+      debugPrint('✅ Efficient model succeeded as fallback');
+      efficientResult['model_used'] = 'Efficient (Fallback)';
+      efficientResult['fallback_used'] = true;
+      efficientResult['primary_model_error'] = mobileNetResult['error'];
+      return efficientResult;
     } catch (e) {
-      debugPrint('💥 Exception during prediction: $e');
-      debugPrint('');
+      debugPrint('💥 Exception during iris prediction: $e');
       return {'error': 'Failed to connect to server: $e'};
     }
   }
 
-  // Method to predict iris using a specific model (advanced usage)
-  static Future<Map<String, dynamic>> predictIrisWithBothImagesUsingModel(
-      File leftIrisImage, File rightIrisImage, PredictionModel model) async {
+  // Predict iris with both images using MobileNet as primary, with fallback
+  static Future<Map<String, dynamic>> predictIrisWithBothImages(
+    File leftIrisImage,
+    File rightIrisImage, {
+    String? userId,
+  }) async {
     try {
-      debugPrint('🔍 Starting dual iris prediction with specific model...');
-      debugPrint('🤖 Using model: ${model.displayName}');
-      debugPrint('📁 Left iris file path: ${leftIrisImage.path}');
-      debugPrint('📁 Right iris file path: ${rightIrisImage.path}');
-      debugPrint(
-          '📏 Left iris file size: ${await leftIrisImage.length()} bytes');
-      debugPrint(
-          '📏 Right iris file size: ${await rightIrisImage.length()} bytes');
-
-      // Get current user ID if logged in
-      final user = FirebaseAuth.instance.currentUser;
-      final userId = user?.uid;
-      debugPrint('👤 User ID: $userId');
-
-      // Use specified model's endpoint
-      final endpoint = model.endpoint;
-      debugPrint('🌐 API URL: $endpoint');
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(endpoint),
+      // Compress images before sending
+      final compressedLeft = await _compressImage(leftIrisImage);
+      final compressedRight = await _compressImage(rightIrisImage);
+      
+      debugPrint('🔍 Starting iris prediction with compressed images...');
+      debugPrint('📏 Original left size: ${await leftIrisImage.length()} bytes');
+      debugPrint('📏 Compressed left size: ${await compressedLeft.length()} bytes');
+      
+      // Try MobileNet endpoint FIRST (primary model)
+      debugPrint('🤖 Trying MobileNet model first (primary)...');
+      final mobileNetResult = await _tryPredictWithBothImages(
+        compressedLeft,
+        compressedRight,
+        ApiConfig.predictionUrl, // This is /api/predict-mobilenet
+        userId,
+        'MobileNet Model (Primary)',
       );
 
-      // Add headers
-      request.headers.addAll({
-        'Connection': 'keep-alive',
-        'Accept': 'application/json',
-      });
-
-      debugPrint('📋 Request headers: ${request.headers}');
-
-      // Add user ID if available
-      if (userId != null) {
-        request.fields['user_id'] = userId;
+      // If MobileNet succeeds, return immediately
+      if (!mobileNetResult.containsKey('error')) {
+        debugPrint('✅ MobileNet prediction successful!');
+        return mobileNetResult;
       }
 
-      debugPrint('📝 Request fields: ${request.fields}');
+      // If MobileNet fails, try efficient model as fallback
+      debugPrint('🔄 MobileNet failed, trying Efficient model as fallback...');
+      debugPrint('MobileNet error: ${mobileNetResult['error']}');
 
-      // Add both iris images as required by the API
+      final efficientResult = await _tryPredictWithBothImages(
+        compressedLeft,
+        compressedRight,
+        ApiConfig.efficientNetUrl,
+        userId,
+        'Efficient Model (Fallback)',
+      );
+
+      // If efficient model also fails, return the original MobileNet error
+      if (efficientResult.containsKey('error')) {
+        debugPrint(
+            '❌ Both models failed. Returning MobileNet error as primary.');
+        return mobileNetResult; // Return original MobileNet error
+      }
+
+      // Efficient model succeeded as fallback
+      debugPrint('✅ Efficient model succeeded as fallback');
+      efficientResult['fallback_used'] = true;
+      efficientResult['primary_model_error'] = mobileNetResult['error'];
+      return efficientResult;
+    } catch (e) {
+      debugPrint('💥 Exception during iris prediction: $e');
+      return {'error': 'Failed to connect to server: $e'};
+    }
+  }
+
+  // Helper method to try prediction with both images
+  static Future<Map<String, dynamic>> _tryPredictWithBothImages(
+    File leftIrisImage,
+    File rightIrisImage,
+    String endpoint,
+    String? userId,
+    String modelName,
+  ) async {
+    try {
+      debugPrint('🤖 Trying $modelName at: $endpoint');
+
+      final uri = Uri.parse(endpoint);
+      final request = http.MultipartRequest('POST', uri);
+
+      // Add headers exactly like test HTML
+      request.headers.addAll({
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
+      });
+
+      // Add files with exact field names from test HTML
       request.files.add(await http.MultipartFile.fromPath(
-        'image1', // Left iris as image1
+        'image1', // Exact field name from test HTML
         leftIrisImage.path,
-        filename: 'left_iris.jpg',
+        filename: 'image1.jpg', // Simple filename like test HTML
       ));
 
       request.files.add(await http.MultipartFile.fromPath(
-        'image2', // Right iris as image2
+        'image2', // Exact field name from test HTML
         rightIrisImage.path,
-        filename: 'right_iris.jpg',
+        filename: 'image2.jpg', // Simple filename like test HTML
       ));
 
-      debugPrint(
-          '📎 Added left iris file: left_iris.jpg, size: ${await leftIrisImage.length()} bytes');
-      debugPrint(
-          '📎 Added right iris file: right_iris.jpg, size: ${await rightIrisImage.length()} bytes');
+      // Don't add user_id for now to match test HTML exactly
+      // The test HTML doesn't send user_id
 
-      debugPrint('🚀 Sending request...');
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
+      debugPrint('📋 Request fields: ${request.fields}');
+      debugPrint(
+          '📎 Added file: image1.jpg, size: ${await leftIrisImage.length()} bytes');
+      debugPrint(
+          '📎 Added file: image2.jpg, size: ${await rightIrisImage.length()} bytes');
+      debugPrint('🚀 Sending request to $modelName...');
+
+      // Send request with longer timeout for MobileNet processing
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 180), // 3 minutes for MobileNet processing
+        onTimeout: () {
+          throw TimeoutException(
+              'Request timeout', const Duration(seconds: 180));
+        },
+      );
+
+      final response = await http.Response.fromStream(streamedResponse);
 
       debugPrint('📨 Response status: ${response.statusCode}');
       debugPrint('📨 Response headers: ${response.headers}');
-      debugPrint('📨 Response body: $responseBody');
-      debugPrint('');
+      debugPrint('📨 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> result = json.decode(responseBody);
-        debugPrint('✅ Prediction successful: $result');
-        // Add model info to result
-        result['model_used'] = model.displayName;
-        result['model_endpoint'] = endpoint;
+        final Map<String, dynamic> result = json.decode(response.body);
+        result['model_used'] = modelName;
+        debugPrint('✅ $modelName prediction successful');
         return result;
       } else {
-        debugPrint('❌ API Error: ${response.statusCode} - $responseBody');
-        debugPrint('');
+        debugPrint(
+            '❌ $modelName API Error: ${response.statusCode} - ${response.body}');
+        final errorBody =
+            response.body.isNotEmpty ? json.decode(response.body) : {};
+        final rawError =
+            errorBody['error'] ?? errorBody['message'] ?? 'Prediction failed';
         return {
-          'error': 'API Error: ${response.statusCode} - $responseBody',
+          'error': _getUserFriendlyError(rawError),
+          'raw_error': rawError,
           'status_code': response.statusCode,
-          'response_body': responseBody,
-          'model_used': model.displayName,
+          'model_used': modelName,
         };
       }
-    } catch (e) {
-      debugPrint('💥 Exception during prediction: $e');
-      debugPrint('');
+    } on TimeoutException catch (e) {
+      debugPrint('⏰ $modelName prediction timeout: $e');
       return {
-        'error': 'Failed to connect to server: $e',
-        'model_used': model.displayName,
+        'error': 'La prédiction a pris trop de temps. Réessayez.',
+        'model_used': modelName
+      };
+    } on SocketException catch (e) {
+      debugPrint('🌐 Network error during $modelName prediction: $e');
+      return {
+        'error': 'Erreur de réseau. Vérifiez votre connexion internet.',
+        'model_used': modelName
+      };
+    } catch (e) {
+      debugPrint('💥 Exception during $modelName prediction: $e');
+      return {
+        'error': 'Erreur lors de la prédiction: $e',
+        'model_used': modelName
       };
     }
   }
@@ -396,7 +368,7 @@ class ApiService {
 
       // Add user ID if available
       if (userId != null) {
-        request.fields[ApiConfig.userIdFieldName] = userId;
+        request.fields['user_id'] = userId;
       }
 
       // Add the image file
@@ -404,7 +376,7 @@ class ApiService {
       final fileLength = await imageFile.length();
 
       final multipartFile = http.MultipartFile(
-        ApiConfig.imageFieldName,
+        'image',
         fileStream,
         fileLength,
         filename: 'iris_image.jpg',
@@ -513,34 +485,26 @@ class ApiService {
     }
   }
 
-  // Method to extract iris from face image using the correct endpoint
+  // Method to extract iris from face image - matches test HTML exactly
   static Future<Map<String, dynamic>> extractIris(File faceImage) async {
     try {
-      debugPrint('👁️ Starting iris extraction...');
+      debugPrint('👁️ Starting iris extraction (matching test HTML)...');
       debugPrint('📁 Face image path: ${faceImage.path}');
       debugPrint('📏 Face image size: ${await faceImage.length()} bytes');
 
-      // Get current user ID if logged in
-      final user = FirebaseAuth.instance.currentUser;
-      final userId = user?.uid;
-      debugPrint('👤 User ID: $userId');
-
-      // Create multipart request using the iris extraction endpoint
-      final uri = Uri.parse(ApiConfig.irisExtractionUrl);
+      // Create multipart request exactly like test HTML
+      final uri = Uri.parse(ApiConfig.extractIrisUrl);
       debugPrint('🌐 Extraction URL: $uri');
 
       final request = http.MultipartRequest('POST', uri);
 
-      // Add timeout
-      request.headers['Connection'] = 'keep-alive';
-      request.headers['Accept'] = 'application/json';
-      debugPrint('📋 Request headers: ${request.headers}');
+      // Add headers exactly like test HTML
+      request.headers.addAll({
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
+      });
 
-      // Temporarily disable user_id to test if it's causing issues
-      // if (userId != null) {
-      //   request.fields[ApiConfig.userIdFieldName] = userId;
-      // }
-      debugPrint('📝 Request fields: ${request.fields}');
+      debugPrint('📋 Request headers: ${request.headers}');
 
       // Check if file exists and is readable
       if (!await faceImage.exists()) {
@@ -552,24 +516,25 @@ class ApiService {
         throw Exception('Face image file is empty: ${faceImage.path}');
       }
 
-      // Add the image file
-      final fileStream = http.ByteStream(faceImage.openRead());
+      // Add the image file with exact field name from test HTML
+      request.files.add(await http.MultipartFile.fromPath(
+        'image', // Exact field name from test HTML
+        faceImage.path,
+        filename: 'image.jpg', // Simple filename like test HTML
+      ));
 
-      final multipartFile = http.MultipartFile(
-        'image', // Use 'image' field name for iris extraction
-        fileStream,
-        fileLength,
-        filename: 'face_image.jpg',
+      debugPrint('📎 Added face image: image.jpg, size: $fileLength bytes');
+
+      // Send the request with proper timeout
+      debugPrint('🚀 Sending iris extraction request...');
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 120), // Longer timeout for extraction
+        onTimeout: () {
+          throw TimeoutException(
+              'Iris extraction timeout', const Duration(seconds: 120));
+        },
       );
 
-      request.files.add(multipartFile);
-      debugPrint(
-          '📎 Added face image: ${multipartFile.filename}, size: ${multipartFile.length} bytes');
-
-      // Send the request
-      debugPrint('🚀 Sending iris extraction request...');
-      final streamedResponse =
-          await request.send().timeout(ApiConfig.longRequestTimeout);
       final response = await http.Response.fromStream(streamedResponse);
 
       debugPrint('📨 Extraction response status: ${response.statusCode}');
@@ -578,56 +543,50 @@ class ApiService {
       // Check if request was successful
       if (response.statusCode == 200) {
         final result = json.decode(response.body);
-        debugPrint('Iris extraction successful: $result');
+        debugPrint('✅ Iris extraction successful');
         return result;
       } else {
-        debugPrint(
-            'Iris extraction API Error: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ Iris extraction failed: ${response.statusCode}');
+        final errorBody =
+            response.body.isNotEmpty ? json.decode(response.body) : {};
         return {
-          'error': 'Server returned status code ${response.statusCode}',
-          'details': response.body
+          'error': _getUserFriendlyError(
+              errorBody['error'] ?? 'Iris extraction failed'),
+          'raw_error': errorBody['error'] ?? 'Unknown error',
+          'status_code': response.statusCode,
         };
       }
+    } on TimeoutException catch (e) {
+      debugPrint('⏰ Iris extraction timeout: $e');
+      return {
+        'error':
+            'L\'extraction d\'iris a pris trop de temps. Réessayez avec une image plus petite.'
+      };
+    } on SocketException catch (e) {
+      debugPrint('🌐 Network error during iris extraction: $e');
+      return {'error': 'Erreur de réseau. Vérifiez votre connexion internet.'};
     } catch (e) {
-      debugPrint('Exception during iris extraction: $e');
-      return {'error': 'Failed to connect to server: $e'};
+      debugPrint('💥 Exception during iris extraction: $e');
+      return {'error': 'Erreur lors de l\'extraction d\'iris: $e'};
     }
   }
 
-  // Debug method to test API with minimal request
-  static Future<Map<String, dynamic>> testApiEndpoint() async {
-    try {
-      debugPrint('🧪 Testing API endpoints...');
-
-      // Test 1: Health check
-      debugPrint('🏥 Testing health endpoint...');
-      final healthResponse = await http.get(
-        Uri.parse(ApiConfig.healthUrl),
-        headers: {'Accept': 'application/json'},
-      ).timeout(ApiConfig.requestTimeout);
-
-      debugPrint(
-          'Health response: ${healthResponse.statusCode} - ${healthResponse.body}');
-
-      // Test 2: Try a simple POST to prediction endpoint (without file)
-      debugPrint('📡 Testing prediction endpoint structure...');
-      final testResponse = await http.post(
-        Uri.parse(ApiConfig.predictionUrl),
-        headers: {'Accept': 'application/json'},
-      ).timeout(ApiConfig.requestTimeout);
-
-      debugPrint(
-          'Prediction test response: ${testResponse.statusCode} - ${testResponse.body}');
-
-      return {
-        'health_status': healthResponse.statusCode,
-        'health_body': healthResponse.body,
-        'prediction_status': testResponse.statusCode,
-        'prediction_body': testResponse.body,
-      };
-    } catch (e) {
-      debugPrint('🚨 API test failed: $e');
-      return {'error': 'API test failed: $e'};
-    }
+  // Helper method to compress images
+  static Future<File> _compressImage(File imageFile) async {
+    final tempDir = await getTemporaryDirectory();
+    final path = tempDir.path;
+    final fileName = basename(imageFile.path);
+    final targetPath = '$path/compressed_$fileName';
+    
+    final result = await FlutterImageCompress.compressAndGetFile(
+      imageFile.path,
+      targetPath,
+      quality: 85,
+      minWidth: 512,
+      minHeight: 512,
+    );
+    
+    return File(result!.path);
   }
 }
+

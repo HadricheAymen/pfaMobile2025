@@ -1,40 +1,38 @@
 class ApiConfig {
-  // Backend API Configuration
-  // Update this URL with your actual backend domain
-  static const String baseUrl =
-      'https://carefree-warmth-production.up.railway.app';
-
-  // API Endpoints based on your backend specification
-  static const String healthEndpoint = '/health';
-  static const String efficientPredictionEndpoint = '/api/predict-efficient';
-  static const String mobilenetPredictionEndpoint = '/api/predict-mobilenet';
-  static const String predictionEndpoint = '/api/predict';
-  static const String irisExtractionEndpoint = '/api/extract-iris';
-  static const String enhancedAnalysisEndpoint = '/api/analyze-iris-enhanced';
-
-  // Full URLs
-  static String get healthUrl => '$baseUrl$healthEndpoint';
-  static String get efficientPredictionUrl =>
-      '$baseUrl$efficientPredictionEndpoint';
-  static String get mobilenetPredictionUrl =>
-      '$baseUrl$mobilenetPredictionEndpoint';
-  static String get predictionUrl => '$baseUrl$predictionEndpoint';
-  static String get irisExtractionUrl => '$baseUrl$irisExtractionEndpoint';
-  static String get enhancedAnalysisUrl => '$baseUrl$enhancedAnalysisEndpoint';
-
-  // Request configuration
-  static const Duration requestTimeout = Duration(seconds: 30);
-  static const Duration longRequestTimeout = Duration(minutes: 2);
-
-  // API Response format expectations
-  // Backend expects 'image' field based on error "Aucune image fournie"
-  static const String imageFieldName = 'image'; // Backend expects 'image' field
-  static const String userIdFieldName = 'user_id';
-
-  // Expected response fields from your backend
+  // Base URL for the API
+  static const String baseUrl = 'https://carefree-warmth-production.up.railway.app';
+  
+  // Prediction endpoints
+  static const String predictionUrl = '$baseUrl/api/predict-mobilenet'; // Changed to match the test HTML
+  static const String efficientNetUrl = '$baseUrl/api/predict-efficient';
+  static const String extractIrisUrl = '$baseUrl/api/extract-iris';
+  static const String enhancedAnalysisUrl = '$baseUrl/api/analyze-iris-enhanced';
+  
+  // Health check endpoint
+  static const String healthUrl = '$baseUrl/health';
+  
+  // Debug endpoint
+  static const String debugUrl = '$baseUrl/debug';
+  
+  // Force download endpoint
+  static const String forceDownloadUrl = '$baseUrl/api/force-download';
+  
+  // Request timeouts
+  static const Duration standardRequestTimeout = Duration(seconds: 30);
+  static const Duration longRequestTimeout = Duration(seconds: 120);
+  static const Duration extraLongRequestTimeout = Duration(seconds: 180);
+  
+  // Use the extra long timeout for image processing endpoints
+  static Future<http.Response> postWithExtendedTimeout(Uri url, dynamic body) async {
+    return await http.post(
+      url,
+      body: body,
+    ).timeout(extraLongRequestTimeout);
+  }
+  
+  // Field names for iris extraction
   static const String leftIrisField = 'left_iris';
   static const String rightIrisField = 'right_iris';
-  static const String primaryTypeField = 'primary_type';
-  static const String confidenceField = 'confidence';
-  static const String errorField = 'error';
 }
+
+

@@ -10,9 +10,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pfa_mobile/utils/responsive_utils.dart';
 import 'package:pfa_mobile/services/api_service.dart';
 import 'package:pfa_mobile/services/personality_class_service.dart';
-import 'package:pfa_mobile/widgets/model_selector_widget.dart';
-import 'package:pfa_mobile/widgets/model_comparison_widget.dart';
-import 'package:pfa_mobile/config/model_config.dart';
 
 class IrisForm extends StatefulWidget {
   const IrisForm({Key? key}) : super(key: key);
@@ -441,31 +438,57 @@ class _IrisFormState extends State<IrisForm> {
         throw Exception(extractionResult['error']);
       }
 
-      // Check if the API returned iris images
-      if (extractionResult.containsKey('left_iris') &&
-          extractionResult.containsKey('right_iris')) {
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
+      // Handle iris extraction response based on your backend format
+      debugPrint('🔍 Processing iris extraction result: $extractionResult');
 
-        // Save left iris image from base64 or URL with unique filename
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      // Check for different possible response formats from your backend
+      if (extractionResult.containsKey('left_iris_base64') &&
+          extractionResult.containsKey('right_iris_base64')) {
+        // Format 1: Base64 encoded images with specific keys
+        debugPrint('📸 Found base64 iris images');
+
         final leftIrisPath = '${tempDir.path}/left_iris_$timestamp.jpg';
         final leftIrisFile = File(leftIrisPath);
-
-        // Save right iris image from base64 or URL with unique filename
         final rightIrisPath = '${tempDir.path}/right_iris_$timestamp.jpg';
         final rightIrisFile = File(rightIrisPath);
 
-        // Handle different response formats from the API
+        final leftIrisBytes =
+            base64Decode(extractionResult['left_iris_base64']);
+        final rightIrisBytes =
+            base64Decode(extractionResult['right_iris_base64']);
+
+        await leftIrisFile.writeAsBytes(leftIrisBytes);
+        await rightIrisFile.writeAsBytes(rightIrisBytes);
+
+        setState(() {
+          _leftIrisImage = leftIrisFile;
+          _rightIrisImage = rightIrisFile;
+          _showExtractedIris = true;
+          _isExtractingIris = false;
+        });
+      } else if (extractionResult.containsKey('left_iris') &&
+          extractionResult.containsKey('right_iris')) {
+        // Format 2: Standard left_iris and right_iris keys
+        debugPrint('📸 Found standard iris images');
+
+        final leftIrisPath = '${tempDir.path}/left_iris_$timestamp.jpg';
+        final leftIrisFile = File(leftIrisPath);
+        final rightIrisPath = '${tempDir.path}/right_iris_$timestamp.jpg';
+        final rightIrisFile = File(rightIrisPath);
+
         if (extractionResult['left_iris'] is String &&
             extractionResult['right_iris'] is String) {
-          // If the API returns base64 encoded images
+          // Base64 encoded
           final leftIrisBytes = base64Decode(extractionResult['left_iris']);
           final rightIrisBytes = base64Decode(extractionResult['right_iris']);
 
           await leftIrisFile.writeAsBytes(leftIrisBytes);
           await rightIrisFile.writeAsBytes(rightIrisBytes);
         } else {
-          // Fallback: use original image (for demo purposes)
+          // Fallback: use original image
           await leftIrisFile.writeAsBytes(await imageFile.readAsBytes());
           await rightIrisFile.writeAsBytes(await imageFile.readAsBytes());
         }
@@ -476,17 +499,36 @@ class _IrisFormState extends State<IrisForm> {
           _showExtractedIris = true;
           _isExtractingIris = false;
         });
-      } else {
-        // Fallback with unique filenames
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
+      } else if (extractionResult.containsKey('message') &&
+          extractionResult['message'].toString().contains('success')) {
+        // Format 3: Success message but no images - use original as fallback
+        debugPrint(
+            '📸 Extraction successful but no images returned, using original');
 
         final leftIrisPath = '${tempDir.path}/left_iris_$timestamp.jpg';
         final leftIrisFile = File(leftIrisPath);
-        await leftIrisFile.writeAsBytes(await imageFile.readAsBytes());
-
         final rightIrisPath = '${tempDir.path}/right_iris_$timestamp.jpg';
         final rightIrisFile = File(rightIrisPath);
+
+        await leftIrisFile.writeAsBytes(await imageFile.readAsBytes());
+        await rightIrisFile.writeAsBytes(await imageFile.readAsBytes());
+
+        setState(() {
+          _leftIrisImage = leftIrisFile;
+          _rightIrisImage = rightIrisFile;
+          _showExtractedIris = true;
+          _isExtractingIris = false;
+        });
+      } else {
+        // Fallback: use original image for both eyes
+        debugPrint('📸 Using original image as fallback for both iris');
+
+        final leftIrisPath = '${tempDir.path}/left_iris_$timestamp.jpg';
+        final leftIrisFile = File(leftIrisPath);
+        final rightIrisPath = '${tempDir.path}/right_iris_$timestamp.jpg';
+        final rightIrisFile = File(rightIrisPath);
+
+        await leftIrisFile.writeAsBytes(await imageFile.readAsBytes());
         await rightIrisFile.writeAsBytes(await imageFile.readAsBytes());
 
         setState(() {
@@ -1115,17 +1157,15 @@ class _IrisFormState extends State<IrisForm> {
               tabletLandscape: 0.025,
             )),
 
-            // Model selector card (only show if enabled in configuration)
-            if (ModelConfig.showModelSelector) ...[
-              _buildModelSelectorCard(context),
-              SizedBox(
-                  height: context.responsiveSpacing(
-                mobilePortrait: 0.025,
-                mobileLandscape: 0.02,
-                tabletPortrait: 0.03,
-                tabletLandscape: 0.025,
-              )),
-            ],
+            // Model info card
+            _buildModelSelectorCard(context),
+            SizedBox(
+                height: context.responsiveSpacing(
+              mobilePortrait: 0.025,
+              mobileLandscape: 0.02,
+              tabletPortrait: 0.03,
+              tabletLandscape: 0.025,
+            )),
 
             // Analyze button (only show when iris images are extracted)
             _buildAnalyzeButtonCard(context),
@@ -2106,13 +2146,42 @@ class _IrisFormState extends State<IrisForm> {
   }
 
   Widget _buildModelSelectorCard(BuildContext context) {
-    return ModelSelectorWidget(
-      onModelChanged: (PredictionModel model) {
-        // Optional: Add any additional logic when model changes
-        debugPrint('Model changed to: ${model.displayName}');
-      },
-      showDescription: true,
-      showTechnicalInfo: false,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.phone_android, color: Colors.green.shade700),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Modèle MobileNet (Principal)',
+                  style: TextStyle(
+                    color: Colors.green.shade700,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Utilise MobileNet comme modèle principal avec basculement automatique vers le modèle efficace si nécessaire.',
+            style: TextStyle(
+              color: Colors.green.shade600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
